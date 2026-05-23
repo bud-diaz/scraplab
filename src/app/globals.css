@@ -1,26 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-kraft-300: #DEC4A0;
+  --color-kraft-400: #D3B48C;
+  --color-kraft-500: #C8A97E;
+  --color-kraft-600: #B8935C;
+  --color-kraft-700: #A07840;
+
+  --color-walnut-500: #8B6B52;
+  --color-walnut-600: #7D5C45;
+  --color-walnut-700: #6B4F3A;
+  --color-walnut-800: #5A3F2B;
+  --color-walnut-900: #4A301E;
+
+  --color-builder-400: #4BAEE3;
+  --color-builder-500: #2D9CDB;
+  --color-builder-600: #1E87C4;
+  --color-builder-700: #1672A8;
+
+  --color-orange-400: #F5A052;
+  --color-orange-500: #F28C28;
+  --color-orange-600: #D97818;
+  --color-orange-700: #BE650E;
+
+  --color-cream-50: #F8F3EA;
+  --color-cream-100: #F0E8D8;
+  --color-cream-200: #E6D9C2;
+
+  --color-charcoal-800: #3D3D3D;
+  --color-charcoal-900: #2B2B2B;
+
+  --font-heading: "Outfit", "Manrope", sans-serif;
+  --font-body: "Inter", sans-serif;
+
+  --radius-2xl: 16px;
+  --radius-3xl: 20px;
+  --radius-4xl: 28px;
+
+  --shadow-card: 0 2px 8px rgba(43, 43, 43, 0.08), 0 1px 2px rgba(43, 43, 43, 0.04);
+  --shadow-card-hover: 0 4px 16px rgba(43, 43, 43, 0.12), 0 2px 4px rgba(43, 43, 43, 0.06);
+  --shadow-card-lg: 0 8px 24px rgba(43, 43, 43, 0.10), 0 2px 6px rgba(43, 43, 43, 0.06);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    background-color: var(--color-cream-50);
+    color: var(--color-charcoal-900);
+    font-family: var(--font-body);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  .texture-subtle {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  }
+  .font-heading {
+    font-family: var(--font-heading);
+  }
+  .font-body {
+    font-family: var(--font-body);
+  }
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  .shadow-card-hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+  .shadow-card-lg {
+    box-shadow: var(--shadow-card-lg);
+  }
 }
