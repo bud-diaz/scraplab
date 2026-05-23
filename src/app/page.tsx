@@ -2,6 +2,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { HeroActionCard } from "@/components/cards/HeroActionCard";
 import { ProjectCard } from "@/components/cards/ProjectCard";
 import { QuickActions } from "@/components/cards/QuickActions";
+import { SignInNudge } from "@/components/cards/SignInNudge";
 import { projects } from "@/lib/mock-data";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
@@ -15,6 +16,7 @@ export default function Home() {
           <h1 className="font-heading font-bold text-2xl text-charcoal-900">Let&apos;s build something.</h1>
         </div>
 
+        <SignInNudge />
         <HeroActionCard />
 
         <div className="px-4 mt-6">

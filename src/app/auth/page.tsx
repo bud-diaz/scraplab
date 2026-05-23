@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
@@ -53,11 +54,8 @@ export default function AuthPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 bg-builder-500 rounded-2xl flex items-center justify-center mb-3 shadow-card">
-            <span className="text-white font-heading font-bold text-xl">SL</span>
-          </div>
-          <h1 className="font-heading font-bold text-2xl text-charcoal-900">ScrapLab</h1>
-          <p className="text-sm text-walnut-600 font-body mt-0.5">Build More. Buy Less.</p>
+          <Image src="/logo.png" alt="ScrapLab" height={80} width={200} className="object-contain" priority />
+          <p className="text-sm text-walnut-600 font-body -mt-1">Build More. Buy Less.</p>
         </div>
 
         {confirmed ? (
