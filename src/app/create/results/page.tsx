@@ -1,66 +1,122 @@
 "use client";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { ProjectCard } from "@/components/cards/ProjectCard";
 import { FilterChip } from "@/components/ui/FilterChip";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { projects, materials } from "@/lib/mock-data";
-import { useState } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { toDisplayProject } from "@/lib/display";
+import type { DisplayProject } from "@/lib/display";
+import type { ProjectRecommendation, MatchType } from "@/types";
 
-const matchLabels: ("Great Match" | "Close Match" | "Partial Match")[] = [
-  "Great Match", "Great Match", "Close Match", "Partial Match", "Close Match"
-];
+const FILTERS = ["All", "Quick", "Low Mess", "Independent"];
 
 function ResultsContent() {
   const searchParams = useSearchParams();
   const selectedIds = searchParams.getAll("materials");
+  const { session } = useAuth();
   const [activeFilter, setActiveFilter] = useState("All");
+  const [projects, setProjects] = useState<DisplayProject[]>([]);
+  const [loading, setLoading] = useState(() => selectedIds.length > 0);
+  const [error, setError] = useState<string | null>(null);
+  const loadedFor = useRef<string>("");
 
-  const filters = ["All", "Quick", "Low Mess", "Independent"];
+  useEffect(() => {
+    const key = `${session?.access_token ?? "anon"}:${selectedIds.join(",")}`;
+    if (!selectedIds.length || loadedFor.current === key) return;
+    loadedFor.current = key;
 
-  const labeledProjects = projects.map((p, i) => ({
-    ...p,
-    matchLabel: matchLabels[i] ?? "Partial Match" as const,
-  }));
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
 
-  const filtered = labeledProjects.filter(p => {
+    async function load() {
+      // Authenticated path: use the recommendation engine (ranked + age-aware)
+      if (session) {
+        const res = await fetch('/api/recommendations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ materialIds: selectedIds, childAge: 7 }),
+        });
+
+        if (res.ok) {
+          const { recommendations }: { recommendations: ProjectRecommendation[] } = await res.json();
+          if (recommendations.length === 0) { if (!cancelled) setProjects([]); return; }
+
+          // Fetch all projects once to resolve recommendation IDs to full project data
+          const projRes = await fetch('/api/projects');
+          const { projects: allProjects } = await projRes.json();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const byId = Object.fromEntries((allProjects as any[]).map((p: any) => [p.id, p]));
+
+          const display = recommendations
+            .map((r: ProjectRecommendation) => {
+              const p = byId[r.projectId];
+              if (!p) return null;
+              return toDisplayProject(p, r.matchType as MatchType);
+            })
+            .filter((p): p is DisplayProject => p !== null);
+
+          if (!cancelled) setProjects(display);
+          return;
+        }
+        // Fall through to unauthenticated path on non-OK (e.g. 400 from slug IDs, 429 limit)
+      }
+
+      // Unauthenticated (or recommendation failure) path: filter projects by material
+      const res = await fetch(`/api/projects?materials=${selectedIds.join(',')}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { projects: raw }: { projects: any[] } = await res.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (!cancelled) setProjects(raw.map((p: any) => toDisplayProject(p)));
+    }
+
+    load()
+      .catch(e => { if (!cancelled) setError(e instanceof Error ? e.message : 'Something went wrong') })
+      .finally(() => { if (!cancelled) setLoading(false) });
+
+    return () => { cancelled = true; };
+  }, [session?.access_token, selectedIds.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const filtered = projects.filter(p => {
     if (activeFilter === "Quick") return parseInt(p.timeEstimate) <= 15;
     if (activeFilter === "Low Mess") return p.cleanupLevel === "Low";
     if (activeFilter === "Independent") return p.supervisionLevel === "Independent";
     return true;
   });
 
-  const selectedNames = selectedIds
-    .map(id => materials.find(m => m.id === id)?.name)
-    .filter(Boolean)
-    .join(", ");
-
   return (
     <div className="max-w-2xl mx-auto">
       <div className="px-4 pt-6 pb-3">
         <h1 className="font-heading font-bold text-2xl text-charcoal-900">
-          {filtered.length > 0 ? "Here’s what you can build" : "Let’s find something"}
+          {loading ? "Finding builds…" : filtered.length > 0 ? "Here's what you can build" : "Let's find something"}
         </h1>
-        {selectedNames && (
-          <p className="text-sm text-walnut-600 mt-0.5">Using: {selectedNames}</p>
-        )}
       </div>
 
       <div className="px-4 mb-4 overflow-x-auto">
         <div className="flex gap-2 pb-1">
-          {filters.map(f => (
-            <FilterChip
-              key={f}
-              label={f}
-              active={activeFilter === f}
-              onClick={() => setActiveFilter(f)}
-            />
+          {FILTERS.map(f => (
+            <FilterChip key={f} label={f} active={activeFilter === f} onClick={() => setActiveFilter(f)} />
           ))}
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="px-4 grid grid-cols-2 gap-3">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-white rounded-3xl shadow-card h-44 animate-pulse" />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="px-4">
+          <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 text-sm text-orange-700">{error}</div>
+        </div>
+      ) : filtered.length === 0 ? (
         <EmptyState
           emoji="🔧"
           title="Not quite enough yet"
@@ -71,7 +127,7 @@ function ResultsContent() {
       ) : (
         <div className="px-4 grid grid-cols-2 gap-3 pb-8">
           {filtered.map(project => (
-            <ProjectCard key={project.id} project={project} showMatch />
+            <ProjectCard key={project.id} project={project} showMatch={!!project.matchLabel} />
           ))}
         </div>
       )}

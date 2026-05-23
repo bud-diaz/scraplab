@@ -1,17 +1,19 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+function requireEnv(name: string): string {
+  const value = process.env[name]
+  if (!value) throw new Error(`Environment variable ${name} is not set. Check your .env file.`)
+  return value
+}
 
 export function createServiceClient() {
-  return createClient(supabaseUrl, supabaseServiceKey, {
+  return createClient(requireEnv('NEXT_PUBLIC_SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'), {
     auth: { persistSession: false },
   })
 }
 
 export function createAnonClient() {
-  return createClient(supabaseUrl, supabaseAnonKey)
+  return createClient(requireEnv('NEXT_PUBLIC_SUPABASE_URL'), requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'))
 }
 
 export async function getUserFromRequest(request: Request) {
@@ -19,7 +21,10 @@ export async function getUserFromRequest(request: Request) {
   if (!authHeader?.startsWith('Bearer ')) return null
 
   const token = authHeader.slice(7)
-  const supabase = createClient(supabaseUrl, supabaseAnonKey)
+  const supabase = createClient(
+    requireEnv('NEXT_PUBLIC_SUPABASE_URL'),
+    requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+  )
   const {
     data: { user },
     error,
@@ -29,7 +34,7 @@ export async function getUserFromRequest(request: Request) {
 }
 
 export function createUserClient(token: string) {
-  return createClient(supabaseUrl, supabaseAnonKey, {
+  return createClient(requireEnv('NEXT_PUBLIC_SUPABASE_URL'), requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'), {
     global: { headers: { Authorization: `Bearer ${token}` } },
   })
 }

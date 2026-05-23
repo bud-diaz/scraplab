@@ -2,16 +2,24 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { materials } from "@/lib/mock-data";
+import { materials as mockMaterials } from "@/lib/mock-data";
+
+interface MaterialEntry {
+  id: string;
+  name: string;
+  icon: string | null;
+}
 
 interface MaterialsChecklistProps {
   requiredMaterials: string[];
   optionalMaterials: string[];
   substitutions: Record<string, string>;
+  allMaterials?: MaterialEntry[];
 }
 
-export function MaterialsChecklist({ requiredMaterials, optionalMaterials, substitutions }: MaterialsChecklistProps) {
+export function MaterialsChecklist({ requiredMaterials, optionalMaterials, substitutions, allMaterials }: MaterialsChecklistProps) {
   const [checked, setChecked] = useState<Set<string>>(new Set());
+  const lookup: MaterialEntry[] = allMaterials ?? mockMaterials;
 
   const toggle = (id: string) => {
     setChecked(prev => {
@@ -22,10 +30,8 @@ export function MaterialsChecklist({ requiredMaterials, optionalMaterials, subst
     });
   };
 
-  const getMaterialName = (id: string) =>
-    materials.find(m => m.id === id)?.name ?? id;
-  const getMaterialIcon = (id: string) =>
-    materials.find(m => m.id === id)?.icon ?? "📦";
+  const getMaterialName = (id: string) => lookup.find(m => m.id === id)?.name ?? id;
+  const getMaterialIcon = (id: string) => lookup.find(m => m.id === id)?.icon ?? "📦";
 
   return (
     <div className="space-y-4">
