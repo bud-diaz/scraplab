@@ -1,16 +1,51 @@
 "use client";
 import Link from "next/link";
 import { Clock, Trash2, Users, Bookmark } from "lucide-react";
-import { Project } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { MetadataChip } from "@/components/ui/MetadataChip";
+import { useAuth } from "@/lib/auth-context";
+import { useState } from "react";
+
+export interface ProjectCardProject {
+  id: string;
+  title: string;
+  emoji: string;
+  bgColor: string;
+  timeEstimate: string;
+  cleanupLevel: string;
+  ageRange: string;
+  matchLabel?: "Great Match" | "Close Match" | "Partial Match";
+}
 
 interface ProjectCardProps {
-  project: Project;
+  project: ProjectCardProject;
   showMatch?: boolean;
 }
 
 export function ProjectCard({ project, showMatch = false }: ProjectCardProps) {
+  const { session } = useAuth();
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleBookmark = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!session || saving || saved) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/saved-projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ projectId: project.id }),
+      });
+      if (res.ok || res.status === 409) setSaved(true);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Link href={`/projects/${project.id}`} className="block group">
       <div className="bg-white rounded-3xl shadow-card hover:shadow-card-hover transition-all duration-200 overflow-hidden">
@@ -25,10 +60,17 @@ export function ProjectCard({ project, showMatch = false }: ProjectCardProps) {
             </span>
           )}
           <button
-            onClick={(e) => { e.preventDefault(); }}
-            className="absolute top-3 left-3 w-7 h-7 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors"
+            onClick={handleBookmark}
+            aria-label={saved ? "Saved" : "Save project"}
+            className={cn(
+              "absolute top-3 left-3 w-7 h-7 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors",
+              !session && "opacity-40 cursor-default"
+            )}
           >
-            <Bookmark size={13} className="text-walnut-700" />
+            <Bookmark
+              size={13}
+              className={cn(saved ? "text-builder-500 fill-builder-500" : "text-walnut-700")}
+            />
           </button>
         </div>
         <div className="p-4">

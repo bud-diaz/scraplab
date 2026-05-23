@@ -1,13 +1,19 @@
 "use client";
 import { X } from "lucide-react";
-import { materials } from "@/lib/mock-data";
+
+interface Material {
+  id: string;
+  name: string;
+  icon: string | null;
+}
 
 interface MaterialSelectionTrayProps {
   selected: string[];
+  materials: Material[];
   onRemove: (id: string) => void;
 }
 
-export function MaterialSelectionTray({ selected, onRemove }: MaterialSelectionTrayProps) {
+export function MaterialSelectionTray({ selected, materials, onRemove }: MaterialSelectionTrayProps) {
   if (selected.length === 0) return null;
 
   const getMaterial = (id: string) => materials.find(m => m.id === id);

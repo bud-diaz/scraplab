@@ -1,26 +1,51 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
-import { projects } from "@/lib/mock-data";
+import { projects as mockProjects } from "@/lib/mock-data";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { createServiceClient } from "@/lib/db/client";
+import { getProjectDisplay } from "@/lib/display";
 
 export function generateStaticParams() {
-  return projects.map(p => ({ id: p.id }));
+  return mockProjects.map(p => ({ id: p.id }));
 }
 
 export default async function CompletePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const project = projects.find(p => p.id === id);
-  if (!project) return notFound();
+  const mockProject = mockProjects.find(p => p.id === id);
+
+  let emoji = "🎉";
+  let title = "Your Build";
+
+  if (mockProject) {
+    emoji = mockProject.emoji;
+    title = mockProject.title;
+  } else {
+    // DB fallback for UUID project IDs
+    try {
+      const db = createServiceClient();
+      const { data: project } = await db
+        .from('projects')
+        .select('title, slug')
+        .or(`id.eq.${id},slug.eq.${id}`)
+        .single();
+
+      if (!project) return notFound();
+      title = project.title;
+      emoji = getProjectDisplay(project.slug).emoji;
+    } catch {
+      return notFound();
+    }
+  }
 
   return (
     <AppShell>
       <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[80vh] px-4 text-center">
         <div className="w-24 h-24 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center text-4xl mb-6 shadow-card-lg">
-          {project.emoji}
+          {emoji}
         </div>
         <h1 className="font-heading font-bold text-3xl text-charcoal-900 mb-2">Built it. Nice.</h1>
-        <p className="text-base text-walnut-600 mb-2 font-body">{project.title}</p>
+        <p className="text-base text-walnut-600 mb-2 font-body">{title}</p>
         <p className="text-sm text-walnut-500 mb-8 max-w-xs font-body">
           Great work! You just built something awesome from household materials.
         </p>

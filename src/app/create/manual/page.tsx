@@ -1,27 +1,57 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { MaterialCard } from "@/components/ui/MaterialCard";
 import { MaterialSelectionTray } from "@/components/ui/MaterialSelectionTray";
 import { FilterChip } from "@/components/ui/FilterChip";
 import { Button } from "@/components/ui/Button";
-import { materials, materialCategories } from "@/lib/mock-data";
+import { materials as mockMaterials, materialCategories } from "@/lib/mock-data";
 import { Search } from "lucide-react";
+
+interface UIMaterial {
+  id: string;
+  name: string;
+  category: string;
+  icon: string | null;
+}
+
+const fallbackMaterials: UIMaterial[] = mockMaterials.map(m => ({
+  id: m.id,
+  name: m.name,
+  category: m.category,
+  icon: m.icon,
+}));
 
 export default function ManualPickerPage() {
   const router = useRouter();
+  const [materials, setMaterials] = useState<UIMaterial[]>(fallbackMaterials);
   const [selected, setSelected] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState("all");
   const [search, setSearch] = useState("");
 
+  useEffect(() => {
+    fetch('/api/materials')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.materials?.length) setMaterials(data.materials);
+      })
+      .catch(() => { /* silently keep fallback */ });
+  }, []);
+
   const toggle = (id: string) => {
-    setSelected(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
   const remove = (id: string) => setSelected(prev => prev.filter(x => x !== id));
+
+  const categories = [
+    { id: "all", label: "All" },
+    ...Array.from(new Set(materials.map(m => m.category))).map(cat => ({
+      id: cat,
+      label: materialCategories.find(c => c.id === cat)?.label ?? cat,
+    })),
+  ];
 
   const filtered = materials.filter(m => {
     const matchCat = activeCategory === "all" || m.category === activeCategory;
@@ -58,13 +88,13 @@ export default function ManualPickerPage() {
 
         {selected.length > 0 && (
           <div className="px-4 mb-4">
-            <MaterialSelectionTray selected={selected} onRemove={remove} />
+            <MaterialSelectionTray selected={selected} materials={materials} onRemove={remove} />
           </div>
         )}
 
         <div className="px-4 mb-4 overflow-x-auto">
           <div className="flex gap-2 pb-1">
-            {materialCategories.map(cat => (
+            {categories.map(cat => (
               <FilterChip
                 key={cat.id}
                 label={cat.label}
@@ -81,7 +111,7 @@ export default function ManualPickerPage() {
               key={mat.id}
               id={mat.id}
               name={mat.name}
-              icon={mat.icon}
+              icon={mat.icon ?? "📦"}
               selected={selected.includes(mat.id)}
               onToggle={toggle}
             />
