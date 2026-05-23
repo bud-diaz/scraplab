@@ -1,14 +1,25 @@
+"use client";
+import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import Link from "next/link";
 import { User, LogOut } from "lucide-react";
 import { ProfileMenu } from "@/components/cards/ProfileMenu";
+import { useAuth } from "@/lib/auth-context";
 
-const children = [
+const mockChildren = [
   { name: "Alex", age: 6, emoji: "🧒" },
   { name: "Sam", age: 4, emoji: "👦" },
 ];
 
 export default function ProfilePage() {
+  const { user, signOut } = useAuth();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.replace("/auth");
+  };
+
   return (
     <AppShell>
       <div className="max-w-2xl mx-auto">
@@ -18,7 +29,11 @@ export default function ProfilePage() {
           </div>
           <div>
             <h1 className="font-heading font-bold text-xl text-charcoal-900">Your Household</h1>
-            <p className="text-sm text-walnut-600 font-body">ScrapLab Free</p>
+            <p className="text-sm text-walnut-600 font-body">
+              {user ? user.email : (
+                <Link href="/auth" className="text-builder-500 font-semibold">Sign in to save your progress</Link>
+              )}
+            </p>
           </div>
           <Link href="/upgrade" className="ml-auto text-xs bg-orange-500 text-white px-3 py-1.5 rounded-full font-heading font-semibold">
             Upgrade
@@ -28,7 +43,7 @@ export default function ProfilePage() {
         <div className="px-4 mb-6">
           <h2 className="font-heading font-semibold text-sm text-charcoal-900 mb-2">Kids</h2>
           <div className="flex gap-2">
-            {children.map(child => (
+            {mockChildren.map(child => (
               <div key={child.name} className="bg-white rounded-2xl shadow-card px-4 py-3 flex items-center gap-2">
                 <span className="text-xl">{child.emoji}</span>
                 <div>
@@ -46,10 +61,23 @@ export default function ProfilePage() {
         <ProfileMenu />
 
         <div className="px-4 mb-8">
-          <button className="flex items-center gap-2 text-sm text-red-500 hover:text-red-600 font-heading font-medium">
-            <LogOut size={15} />
-            Sign Out
-          </button>
+          {user ? (
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-2 text-sm text-red-500 hover:text-red-600 font-heading font-medium"
+            >
+              <LogOut size={15} />
+              Sign Out
+            </button>
+          ) : (
+            <Link
+              href="/auth"
+              className="flex items-center gap-2 text-sm text-builder-500 hover:text-builder-600 font-heading font-medium"
+            >
+              <User size={15} />
+              Sign In
+            </Link>
+          )}
         </div>
       </div>
     </AppShell>
