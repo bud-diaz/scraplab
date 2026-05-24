@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/layout/AppShell";
-import { Button } from "@/components/ui/Button";
+import { UpgradeActions } from "@/components/ui/UpgradeActions";
 import { Check, X } from "lucide-react";
 
 const features = [
@@ -88,11 +88,8 @@ export default function UpgradePage() {
           </div>
         </div>
 
-        <div className="px-4 pb-8 space-y-3">
-          <Button variant="primary" size="lg" className="w-full bg-orange-500 hover:bg-orange-600">
-            Upgrade to ScrapLab Plus — $4.99/mo
-          </Button>
-          <p className="text-center text-xs text-walnut-500 font-body">Cancel anytime. No pressure.</p>
+        <div className="px-4 pb-8">
+          <UpgradeActions />
         </div>
       </div>
     </AppShell>
