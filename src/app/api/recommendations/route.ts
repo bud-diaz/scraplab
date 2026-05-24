@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/db/client'
 import { requireAuth } from '@/lib/db/auth'
 import { generateRecommendations } from '@/lib/recommendations'
 import { getUserPlan, isWithinLimit, PLAN_LIMITS } from '@/lib/access'
+import { generateAiSuggestions } from '@/lib/ai/suggestions'
 
 const bodySchema = z.object({
   materialIds: z.array(z.string().uuid()).min(1).max(50),
@@ -62,13 +63,14 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Load all projects with their materials
-  const { data: projectRows, error: projError } = await db
-    .from('projects')
-    .select('*, project_materials(material_id, required, quantity_note)')
+  // Load all projects with their materials, plus the user's selected materials by name
+  const [projectResult, materialsResult] = await Promise.all([
+    db.from('projects').select('*, project_materials(material_id, required, quantity_note)'),
+    db.from('materials').select('id, name').in('id', parsed.data.materialIds),
+  ])
 
-  if (projError) {
-    return NextResponse.json({ error: projError.message }, { status: 500 })
+  if (projectResult.error) {
+    return NextResponse.json({ error: projectResult.error.message }, { status: 500 })
   }
 
   // Load all substitutions
@@ -76,7 +78,7 @@ export async function POST(request: NextRequest) {
     .from('material_substitutions')
     .select('source_material_id, replacement_material_id, substitution_notes')
 
-  const projectsWithMaterials = (projectRows ?? []).map((p) => ({
+  const projectsWithMaterials = (projectResult.data ?? []).map((p) => ({
     project: p,
     materials: p.project_materials,
   }))
@@ -87,5 +89,16 @@ export async function POST(request: NextRequest) {
     subs ?? []
   )
 
-  return NextResponse.json({ recommendations })
+  // AI fallback: fire when the DB engine returns fewer than 3 results
+  let aiSuggestions: Awaited<ReturnType<typeof generateAiSuggestions>> = []
+  if (recommendations.length < 3) {
+    const materialNames = (materialsResult.data ?? []).map((m) => m.name)
+    aiSuggestions = await generateAiSuggestions(
+      materialNames,
+      parsed.data.childAge,
+      3 - recommendations.length
+    )
+  }
+
+  return NextResponse.json({ recommendations, aiSuggestions })
 }
