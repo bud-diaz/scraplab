@@ -18,10 +18,10 @@ create table if not exists profiles (
 
 alter table profiles enable row level security;
 
-create policy "Users can read own profile"
+create policy if not exists "Users can read own profile"
   on profiles for select using (auth.uid() = id);
 
-create policy "Users can update own profile"
+create policy if not exists "Users can update own profile"
   on profiles for update using (auth.uid() = id);
 
 -- Auto-create profile on signup
@@ -52,7 +52,7 @@ create table if not exists child_profiles (
 
 alter table child_profiles enable row level security;
 
-create policy "Users manage own child profiles"
+create policy if not exists "Users manage own child profiles"
   on child_profiles for all using (auth.uid() = user_id);
 
 -- ============================================================
@@ -69,7 +69,7 @@ create table if not exists materials (
 
 alter table materials enable row level security;
 
-create policy "Materials are public"
+create policy if not exists "Materials are public"
   on materials for select using (true);
 
 -- ============================================================
@@ -95,7 +95,7 @@ create table if not exists projects (
 
 alter table projects enable row level security;
 
-create policy "Projects are public"
+create policy if not exists "Projects are public"
   on projects for select using (true);
 
 create index if not exists idx_projects_slug on projects(slug);
@@ -114,7 +114,7 @@ create table if not exists project_materials (
 
 alter table project_materials enable row level security;
 
-create policy "Project materials are public"
+create policy if not exists "Project materials are public"
   on project_materials for select using (true);
 
 create index if not exists idx_pm_project on project_materials(project_id);
@@ -133,7 +133,7 @@ create table if not exists material_substitutions (
 
 alter table material_substitutions enable row level security;
 
-create policy "Substitutions are public"
+create policy if not exists "Substitutions are public"
   on material_substitutions for select using (true);
 
 -- ============================================================
@@ -149,7 +149,7 @@ create table if not exists saved_projects (
 
 alter table saved_projects enable row level security;
 
-create policy "Users manage own saved projects"
+create policy if not exists "Users manage own saved projects"
   on saved_projects for all using (auth.uid() = user_id);
 
 -- ============================================================
@@ -167,7 +167,7 @@ create table if not exists build_history (
 
 alter table build_history enable row level security;
 
-create policy "Users manage own build history"
+create policy if not exists "Users manage own build history"
   on build_history for all using (auth.uid() = user_id);
 
 create index if not exists idx_bh_user on build_history(user_id, started_at desc);
@@ -188,7 +188,7 @@ create table if not exists household_inventory (
 
 alter table household_inventory enable row level security;
 
-create policy "Users manage own inventory"
+create policy if not exists "Users manage own inventory"
   on household_inventory for all using (auth.uid() = user_id);
 
 create index if not exists idx_inv_user on household_inventory(user_id);
