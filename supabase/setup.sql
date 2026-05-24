@@ -27,11 +27,14 @@ create policy "Users can update own profile"
   on profiles for update using (auth.uid() = id);
 
 -- Auto-create profile on signup
-create or replace function handle_new_user()
-returns trigger language plpgsql security definer as $$
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer
+set search_path = public
+as $$
 begin
-  insert into profiles (id, email)
-  values (new.id, new.email);
+  insert into public.profiles (id, email)
+  values (new.id, new.email)
+  on conflict (id) do nothing;
   return new;
 end;
 $$;
