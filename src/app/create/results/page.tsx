@@ -1,16 +1,58 @@
 "use client";
 import { Suspense, useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
+import { Clock, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { ProjectCard } from "@/components/cards/ProjectCard";
 import { FilterChip } from "@/components/ui/FilterChip";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { MetadataChip } from "@/components/ui/MetadataChip";
 import { useAuth } from "@/lib/auth-context";
 import { toDisplayProject } from "@/lib/display";
 import type { DisplayProject } from "@/lib/display";
 import type { ProjectRecommendation, MatchType } from "@/types";
+import type { AiSuggestion } from "@/lib/ai/suggestions";
 
 const FILTERS = ["All", "Quick", "Low Mess", "Independent"];
+
+const AI_EMOJIS = ["💡", "🎨", "🔨", "✂️", "🌟"];
+
+function AiSuggestionCard({ suggestion, index }: { suggestion: AiSuggestion; index: number }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="bg-white rounded-3xl shadow-card overflow-hidden">
+      <div className="h-28 bg-kraft-100 flex items-center justify-center relative">
+        <span className="text-4xl">{AI_EMOJIS[index % AI_EMOJIS.length]}</span>
+        <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-heading font-semibold bg-builder-100 text-builder-700">
+          AI Idea
+        </span>
+      </div>
+      <div className="p-4">
+        <h3 className="font-heading font-semibold text-base text-charcoal-900 mb-1">{suggestion.title}</h3>
+        <p className="text-xs text-walnut-600 mb-2 line-clamp-2">{suggestion.description}</p>
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          <MetadataChip icon={<Clock size={11} />} label={`${suggestion.timeMinutes} min`} />
+          <MetadataChip icon={<Trash2 size={11} />} label={suggestion.cleanupLevel + " mess"} />
+        </div>
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center gap-1 text-xs text-builder-600 font-body font-medium"
+        >
+          {expanded ? <><ChevronUp size={12} /> Hide steps</> : <><ChevronDown size={12} /> Show steps</>}
+        </button>
+        {expanded && (
+          <ol className="mt-2 space-y-1.5 list-none">
+            {suggestion.steps.map((step, i) => (
+              <li key={i} className="text-xs text-charcoal-800">
+                <span className="font-semibold text-builder-600">{i + 1}.</span> {step}
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function ResultsContent() {
   const searchParams = useSearchParams();
@@ -19,6 +61,7 @@ function ResultsContent() {
   const { session } = useAuth();
   const [activeFilter, setActiveFilter] = useState("All");
   const [projects, setProjects] = useState<DisplayProject[]>([]);
+  const [aiSuggestions, setAiSuggestions] = useState<AiSuggestion[]>([]);
   const [loading, setLoading] = useState(() => selectedIds.length > 0);
   const [error, setError] = useState<string | null>(null);
   const loadedFor = useRef<string>("");
@@ -45,27 +88,33 @@ function ResultsContent() {
         });
 
         if (res.ok) {
-          const { recommendations }: { recommendations: ProjectRecommendation[] } = await res.json();
-          if (recommendations.length === 0) { if (!cancelled) setProjects([]); return; }
+          const data: { recommendations: ProjectRecommendation[]; aiSuggestions?: AiSuggestion[] } = await res.json();
+          const { recommendations, aiSuggestions: aiData = [] } = data;
 
-          // Fetch all projects once to resolve recommendation IDs to full project data
-          const projRes = await fetch('/api/projects');
-          const { projects: allProjects } = await projRes.json();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const byId = Object.fromEntries((allProjects as any[]).map((p: any) => [p.id, p]));
+          if (!cancelled) setAiSuggestions(aiData);
 
-          const display = recommendations
-            .map((r: ProjectRecommendation) => {
-              const p = byId[r.projectId];
-              if (!p) return null;
-              return toDisplayProject(p, r.matchType as MatchType);
-            })
-            .filter((p): p is DisplayProject => p !== null);
+          if (recommendations.length > 0) {
+            // Fetch all projects once to resolve recommendation IDs to full project data
+            const projRes = await fetch('/api/projects');
+            const { projects: allProjects } = await projRes.json();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const byId = Object.fromEntries((allProjects as any[]).map((p: any) => [p.id, p]));
 
-          if (!cancelled) setProjects(display);
+            const display = recommendations
+              .map((r: ProjectRecommendation) => {
+                const p = byId[r.projectId];
+                if (!p) return null;
+                return toDisplayProject(p, r.matchType as MatchType);
+              })
+              .filter((p): p is DisplayProject => p !== null);
+
+            if (!cancelled) setProjects(display);
+          } else {
+            if (!cancelled) setProjects([]);
+          }
           return;
         }
-        // Fall through to unauthenticated path on non-OK (e.g. 400 from slug IDs, 429 limit)
+        // Fall through to unauthenticated path on non-OK (e.g. 429 limit)
       }
 
       // Unauthenticated (or recommendation failure) path: filter projects by material
@@ -91,11 +140,13 @@ function ResultsContent() {
     return true;
   });
 
+  const hasAnything = filtered.length > 0 || aiSuggestions.length > 0;
+
   return (
     <div className="max-w-2xl mx-auto">
       <div className="px-4 pt-6 pb-3">
         <h1 className="font-heading font-bold text-2xl text-charcoal-900">
-          {loading ? "Finding builds…" : filtered.length > 0 ? "Here's what you can build" : "Let's find something"}
+          {loading ? "Finding builds…" : hasAnything ? "Here's what you can build" : "Let's find something"}
         </h1>
       </div>
 
@@ -117,7 +168,7 @@ function ResultsContent() {
         <div className="px-4">
           <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 text-sm text-orange-700">{error}</div>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : !hasAnything ? (
         <EmptyState
           emoji="🔧"
           title="Not quite enough yet"
@@ -126,10 +177,28 @@ function ResultsContent() {
           ctaHref="/create/manual"
         />
       ) : (
-        <div className="px-4 grid grid-cols-2 gap-3 pb-8">
-          {filtered.map(project => (
-            <ProjectCard key={project.id} project={project} showMatch={!!project.matchLabel} />
-          ))}
+        <div className="pb-8">
+          {filtered.length > 0 && (
+            <div className="px-4 grid grid-cols-2 gap-3">
+              {filtered.map(project => (
+                <ProjectCard key={project.id} project={project} showMatch={!!project.matchLabel} />
+              ))}
+            </div>
+          )}
+
+          {aiSuggestions.length > 0 && (
+            <div className="mt-6">
+              <div className="px-4 mb-3 flex items-center gap-2">
+                <span className="text-sm font-heading font-semibold text-walnut-700">AI-Generated Ideas</span>
+                <span className="text-xs text-walnut-500 font-body">via Gemini</span>
+              </div>
+              <div className="px-4 grid grid-cols-2 gap-3">
+                {aiSuggestions.map((s, i) => (
+                  <AiSuggestionCard key={i} suggestion={s} index={i} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
