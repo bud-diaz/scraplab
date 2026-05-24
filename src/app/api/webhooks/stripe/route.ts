@@ -31,10 +31,14 @@ export async function POST(request: NextRequest) {
     const customerId = typeof session.customer === 'string' ? session.customer : null
 
     if (userId && customerId) {
-      await db
+      const { error: updateError } = await db
         .from('profiles')
         .update({ plan: 'plus', stripe_customer_id: customerId })
         .eq('id', userId)
+      if (updateError) {
+        console.error('Stripe webhook: failed to upgrade plan', updateError)
+        return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
+      }
     }
   }
 
@@ -43,7 +47,14 @@ export async function POST(request: NextRequest) {
     const customerId = typeof subscription.customer === 'string' ? subscription.customer : null
 
     if (customerId) {
-      await db.from('profiles').update({ plan: 'free' }).eq('stripe_customer_id', customerId)
+      const { error: updateError } = await db
+        .from('profiles')
+        .update({ plan: 'free' })
+        .eq('stripe_customer_id', customerId)
+      if (updateError) {
+        console.error('Stripe webhook: failed to downgrade plan', updateError)
+        return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
+      }
     }
   }
 

@@ -2,21 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/db/client'
 import { requireAuth } from '@/lib/db/auth'
 import { getUserPlan, canUsePhotoScan } from '@/lib/access'
-import type { DetectedMaterial } from '@/types'
-
-// Stubbed detection — swap body for OpenAI Vision call when ready
-async function detectMaterialsFromImage(
-  _imageUrl: string,
-  availableMaterials: Array<{ id: string; name: string; aliases: string[] }>
-): Promise<DetectedMaterial[]> {
-  // Mock response using the first few materials from the DB
-  // Replace this function body with Vision API call
-  return availableMaterials.slice(0, 3).map((m, i) => ({
-    materialId: m.id,
-    label: m.name,
-    confidence: parseFloat((0.95 - i * 0.08).toFixed(2)),
-  }))
-}
+import { detectMaterialsFromImage } from '@/lib/ai/vision'
 
 export async function POST(request: NextRequest) {
   const { user, error } = await requireAuth(request)
@@ -32,38 +18,70 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  let imageUrl: string | null = null
+  const { data: materials } = await db
+    .from('materials')
+    .select('id, name, aliases')
+    .order('name')
+
+  const knownMaterials = materials ?? []
 
   const contentType = request.headers.get('content-type') ?? ''
+
+  if (contentType.includes('multipart/form-data')) {
+    let formData: FormData
+    try {
+      formData = await request.formData()
+    } catch {
+      return NextResponse.json({ error: 'Invalid form data' }, { status: 400 })
+    }
+
+    const file = formData.get('image') as File | null
+    if (!file) {
+      return NextResponse.json({ error: 'No image file provided (field name: image)' }, { status: 400 })
+    }
+
+    const buffer = await file.arrayBuffer()
+    const base64 = Buffer.from(buffer).toString('base64')
+    const mimeType = file.type || 'image/jpeg'
+
+    const detectedMaterials = await detectMaterialsFromImage(base64, mimeType, knownMaterials)
+    return NextResponse.json({ detectedMaterials, requiresConfirmation: true })
+  }
+
   if (contentType.includes('application/json')) {
+    let imageUrl: string | null = null
     try {
       const body = await request.json()
       imageUrl = body?.imageUrl ?? null
     } catch {
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
     }
-  } else if (contentType.includes('multipart/form-data')) {
-    // Image upload path — store to Supabase Storage then get URL
-    // Stubbed: return placeholder URL
-    imageUrl = 'uploaded://stub'
+
+    if (!imageUrl) {
+      return NextResponse.json(
+        { error: 'Provide imageUrl in JSON body or upload an image file' },
+        { status: 400 }
+      )
+    }
+
+    let base64: string
+    let mimeType: string
+    try {
+      const imageRes = await fetch(imageUrl)
+      if (!imageRes.ok) throw new Error('Failed to fetch image')
+      mimeType = imageRes.headers.get('content-type') || 'image/jpeg'
+      const buffer = await imageRes.arrayBuffer()
+      base64 = Buffer.from(buffer).toString('base64')
+    } catch {
+      return NextResponse.json({ error: 'Could not fetch image from URL' }, { status: 400 })
+    }
+
+    const detectedMaterials = await detectMaterialsFromImage(base64, mimeType, knownMaterials)
+    return NextResponse.json({ detectedMaterials, requiresConfirmation: true })
   }
 
-  if (!imageUrl) {
-    return NextResponse.json(
-      { error: 'Provide imageUrl in JSON body or upload an image file' },
-      { status: 400 }
-    )
-  }
-
-  const { data: materials } = await db
-    .from('materials')
-    .select('id, name, aliases')
-    .order('name')
-
-  const detectedMaterials = await detectMaterialsFromImage(imageUrl, materials ?? [])
-
-  return NextResponse.json({
-    detectedMaterials,
-    requiresConfirmation: true,
-  })
+  return NextResponse.json(
+    { error: 'Provide imageUrl in JSON body or upload an image file' },
+    { status: 400 }
+  )
 }
