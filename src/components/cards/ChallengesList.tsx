@@ -40,7 +40,7 @@ const challenges: Challenge[] = [
     description: "We give you 3 random materials. You build something cool.",
     badge: "Plus",
     badgeColor: "bg-walnut-700/10 text-walnut-700",
-    href: "#",
+    href: "/build/mystery",
     locked: true,
     color: "bg-walnut-700",
   },

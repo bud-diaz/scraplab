@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Zap } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { PlanUsageIndicator } from "@/components/ui/PlanUsageIndicator";
+import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -17,6 +19,7 @@ const navLinks = [
 export function TopNav() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const access = usePlanAccess();
 
   return (
     <header className="hidden md:flex fixed top-0 left-0 right-0 z-50 h-16 bg-white border-b border-kraft-300 shadow-card px-6 items-center justify-between">
@@ -48,13 +51,16 @@ export function TopNav() {
             Sign In
           </Link>
         )}
-        <Link
-          href="/upgrade"
-          className="flex items-center gap-1.5 bg-orange-500 text-white px-4 py-2 rounded-2xl text-sm font-heading font-semibold hover:bg-orange-600 transition-colors"
-        >
-          <Zap size={14} />
-          Upgrade
-        </Link>
+        {user && <PlanUsageIndicator />}
+        {(!user || !access || access.plan === 'free') && (
+          <Link
+            href="/upgrade"
+            className="flex items-center gap-1.5 bg-orange-500 text-white px-4 py-2 rounded-2xl text-sm font-heading font-semibold hover:bg-orange-600 transition-colors"
+          >
+            <Zap size={14} />
+            Upgrade
+          </Link>
+        )}
       </div>
     </header>
   );

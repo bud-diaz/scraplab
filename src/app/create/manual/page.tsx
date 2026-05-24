@@ -8,6 +8,8 @@ import { FilterChip } from "@/components/ui/FilterChip";
 import { Button } from "@/components/ui/Button";
 import { materials as mockMaterials, materialCategories } from "@/lib/mock-data";
 import { Search } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
 
 interface UIMaterial {
   id: string;
@@ -27,6 +29,8 @@ const AGE_OPTIONS = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
 export default function ManualPickerPage() {
   const router = useRouter();
+  const { session } = useAuth();
+  const access = usePlanAccess();
   const [materials, setMaterials] = useState<UIMaterial[]>(fallbackMaterials);
   const [selected, setSelected] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState("all");
@@ -41,6 +45,25 @@ export default function ManualPickerPage() {
       })
       .catch(() => { /* silently keep fallback */ });
   }, []);
+
+  // Pre-select staples for Plus users
+  useEffect(() => {
+    if (!session || access?.plan !== 'plus') return;
+    fetch('/api/household-inventory', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.inventory) return;
+        const stapleIds: string[] = data.inventory
+          .filter((i: { staple_flag: boolean; material_id: string }) => i.staple_flag)
+          .map((i: { material_id: string }) => i.material_id);
+        if (stapleIds.length > 0) {
+          setSelected(prev => Array.from(new Set([...prev, ...stapleIds])));
+        }
+      })
+      .catch(() => {});
+  }, [session, access?.plan]);
 
   const toggle = (id: string) => {
     setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
