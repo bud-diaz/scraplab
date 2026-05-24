@@ -23,12 +23,15 @@ const fallbackMaterials: UIMaterial[] = mockMaterials.map(m => ({
   icon: m.icon,
 }));
 
+const AGE_OPTIONS = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
 export default function ManualPickerPage() {
   const router = useRouter();
   const [materials, setMaterials] = useState<UIMaterial[]>(fallbackMaterials);
   const [selected, setSelected] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState("all");
   const [search, setSearch] = useState("");
+  const [childAge, setChildAge] = useState(7);
 
   useEffect(() => {
     fetch('/api/materials')
@@ -62,6 +65,7 @@ export default function ManualPickerPage() {
   const handleFindBuilds = () => {
     const params = new URLSearchParams();
     selected.forEach(id => params.append("materials", id));
+    params.set("age", childAge.toString());
     router.push(`/create/results?${params.toString()}`);
   };
 
@@ -119,23 +123,37 @@ export default function ManualPickerPage() {
         </div>
 
         <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-cream-50/90 backdrop-blur-sm border-t border-kraft-300 p-4 z-40">
-          <div className="max-w-2xl mx-auto flex items-center gap-3">
-            <div className="flex-1">
-              <p className="text-xs font-body text-walnut-600">
-                {selected.length === 0
-                  ? "Select at least 1 material"
-                  : `${selected.length} material${selected.length !== 1 ? "s" : ""} selected`}
-              </p>
+          <div className="max-w-2xl mx-auto space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-body text-walnut-600 whitespace-nowrap">Child&apos;s age:</span>
+              <select
+                value={childAge}
+                onChange={e => setChildAge(Number(e.target.value))}
+                className="text-sm font-body text-charcoal-900 bg-white border border-kraft-300 rounded-xl px-2 py-1 focus:outline-none focus:border-builder-500"
+              >
+                {AGE_OPTIONS.map(age => (
+                  <option key={age} value={age}>{age} yrs</option>
+                ))}
+              </select>
             </div>
-            <Button
-              variant="primary"
-              size="md"
-              disabled={selected.length === 0}
-              onClick={handleFindBuilds}
-              className="disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Find Builds
-            </Button>
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <p className="text-xs font-body text-walnut-600">
+                  {selected.length === 0
+                    ? "Select at least 1 material"
+                    : `${selected.length} material${selected.length !== 1 ? "s" : ""} selected`}
+                </p>
+              </div>
+              <Button
+                variant="primary"
+                size="md"
+                disabled={selected.length === 0}
+                onClick={handleFindBuilds}
+                className="disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Find Builds
+              </Button>
+            </div>
           </div>
         </div>
       </div>

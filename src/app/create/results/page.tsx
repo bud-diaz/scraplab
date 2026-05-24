@@ -15,6 +15,7 @@ const FILTERS = ["All", "Quick", "Low Mess", "Independent"];
 function ResultsContent() {
   const searchParams = useSearchParams();
   const selectedIds = searchParams.getAll("materials");
+  const childAge = Math.max(3, Math.min(12, parseInt(searchParams.get("age") ?? "7", 10)));
   const { session } = useAuth();
   const [activeFilter, setActiveFilter] = useState("All");
   const [projects, setProjects] = useState<DisplayProject[]>([]);
@@ -23,7 +24,7 @@ function ResultsContent() {
   const loadedFor = useRef<string>("");
 
   useEffect(() => {
-    const key = `${session?.access_token ?? "anon"}:${selectedIds.join(",")}`;
+    const key = `${session?.access_token ?? "anon"}:${selectedIds.join(",")}:age${childAge}`;
     if (!selectedIds.length || loadedFor.current === key) return;
     loadedFor.current = key;
 
@@ -40,7 +41,7 @@ function ResultsContent() {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ materialIds: selectedIds, childAge: 7 }),
+          body: JSON.stringify({ materialIds: selectedIds, childAge }),
         });
 
         if (res.ok) {
@@ -81,7 +82,7 @@ function ResultsContent() {
       .finally(() => { if (!cancelled) setLoading(false) });
 
     return () => { cancelled = true; };
-  }, [session?.access_token, selectedIds.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [session?.access_token, selectedIds.join(","), childAge]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = projects.filter(p => {
     if (activeFilter === "Quick") return parseInt(p.timeEstimate) <= 15;
