@@ -62,7 +62,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signUp = useCallback(async (email: string, password: string) => {
-    const { data, error } = await getClient().auth.signUp({ email, password })
+    const redirectTo = `${window.location.origin}/auth/callback`
+    const { data, error } = await getClient().auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: redirectTo },
+    })
     return { error, needsConfirmation: !error && !data.session }
   }, [])
 
