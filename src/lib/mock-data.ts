@@ -26,6 +26,8 @@ export const materialCategories = [
   { id: "art",        label: "Art Supplies"   },
   { id: "tubes",      label: "Tubes & Rolls"  },
   { id: "wood",       label: "Wood & Sticks"  },
+  { id: "fabric",     label: "Fabric & Yarn"  },
+  { id: "misc",       label: "Other"          },
 ];
 
 export type Project = {
