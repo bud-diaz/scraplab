@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, PlusCircle, BookOpen, Trophy, User } from "lucide-react";
+import { Home, PlusCircle, BookOpen, Compass, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
 
@@ -9,7 +9,7 @@ const navItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/create", label: "Create", icon: PlusCircle },
   { href: "/library", label: "Library", icon: BookOpen },
-  { href: "/challenges", label: "Challenges", icon: Trophy },
+  { href: "/explore", label: "Explore", icon: Compass },
   { href: "/profile", label: "Profile", icon: User },
 ];
 
