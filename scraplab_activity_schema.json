@@ -1,0 +1,69 @@
+{
+  "id": "SL-001",
+  "title": "string",
+  "slug": "string",
+
+  "category": "string",
+  "series": "string|null",
+
+  "one_liner": "string",
+  "description": "string",
+
+  "age_ranges": ["string"],
+  "difficulty": "string",
+
+  "time_minutes": "integer",
+  "estimated_cleanup_minutes": "integer",
+
+  "attention_span_fit": "string",
+  "energy_level": "string",
+
+  "solo_or_group": "string",
+  "supervision_level": "string",
+
+  "environment": ["string"],
+
+  "materials_required": ["string"],
+  "materials_optional": ["string"],
+
+  "scrap_tags": ["string"],
+  "theme_tags": ["string"],
+  "skill_tags": ["string"],
+
+  "prompt_type": "string",
+  "learning_angle": "string",
+
+  "expansion_prompts": ["string"],
+  "safety_notes": ["string"],
+
+  "hero_image_prompt": "string",
+
+  "premium": "boolean",
+  "premium_tier": "string",
+
+  "featured": "boolean",
+  "seasonal": "string|null",
+
+  "inventory_friendly": "boolean",
+  "printable_friendly": "boolean",
+  "classroom_friendly": "boolean",
+  "video_friendly": "boolean",
+
+  "remixable": "boolean",
+
+  "content_pack": "string|null",
+  "pack_type": "string|null",
+
+  "quest_chain": "boolean",
+  "quest_id": "string|null",
+  "quest_step": "integer|null",
+  "quest_total_steps": "integer|null",
+
+  "instructional_build": "boolean",
+  "build_type": "string|null",
+  "instruction_style": "string|null",
+  "steps": ["string"],
+
+  "status": "string",
+  "version": "string"
+}
