@@ -3,17 +3,15 @@ import { Suspense, useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Clock, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
-import { ProjectCard } from "@/components/cards/ProjectCard";
+import { ActivityCard } from "@/components/cards/ActivityCard";
 import { FilterChip } from "@/components/ui/FilterChip";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MetadataChip } from "@/components/ui/MetadataChip";
-import { useAuth } from "@/lib/auth-context";
-import { toDisplayProject } from "@/lib/display";
-import type { DisplayProject } from "@/lib/display";
-import type { ProjectRecommendation, MatchType } from "@/types";
+import type { ActivityMatch } from "@/app/api/activity-recommendations/route";
 import type { AiSuggestion } from "@/lib/ai/suggestions";
 
-const FILTERS = ["All", "Quick", "Low Mess", "Independent"];
+const FILTERS = ["All", "Quick", "Easy", "Family"] as const;
+type Filter = typeof FILTERS[number];
 
 const AI_EMOJIS = ["💡", "🎨", "🔨", "✂️", "🌟"];
 
@@ -57,17 +55,17 @@ function AiSuggestionCard({ suggestion, index }: { suggestion: AiSuggestion; ind
 function ResultsContent() {
   const searchParams = useSearchParams();
   const selectedIds = searchParams.getAll("materials");
-  const childAge = Math.max(3, Math.min(12, parseInt(searchParams.get("age") ?? "7", 10)));
-  const { session } = useAuth();
-  const [activeFilter, setActiveFilter] = useState("All");
-  const [projects, setProjects] = useState<DisplayProject[]>([]);
+  const childAge = Math.max(3, Math.min(18, parseInt(searchParams.get("age") ?? "7", 10)));
+
+  const [activeFilter, setActiveFilter] = useState<Filter>("All");
+  const [matches, setMatches] = useState<ActivityMatch[]>([]);
   const [aiSuggestions, setAiSuggestions] = useState<AiSuggestion[]>([]);
   const [loading, setLoading] = useState(() => selectedIds.length > 0);
   const [error, setError] = useState<string | null>(null);
   const loadedFor = useRef<string>("");
 
   useEffect(() => {
-    const key = `${session?.access_token ?? "anon"}:${selectedIds.join(",")}:age${childAge}`;
+    const key = `${selectedIds.join(",")}:age${childAge}`;
     if (!selectedIds.length || loadedFor.current === key) return;
     loadedFor.current = key;
 
@@ -76,54 +74,17 @@ function ResultsContent() {
     setError(null);
 
     async function load() {
-      // Authenticated path: use the recommendation engine (ranked + age-aware)
-      if (session) {
-        const res = await fetch('/api/recommendations', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ materialIds: selectedIds, childAge }),
-        });
-
-        if (res.ok) {
-          const data: { recommendations: ProjectRecommendation[]; aiSuggestions?: AiSuggestion[] } = await res.json();
-          const { recommendations, aiSuggestions: aiData = [] } = data;
-
-          if (!cancelled) setAiSuggestions(aiData);
-
-          if (recommendations.length > 0) {
-            // Fetch all projects once to resolve recommendation IDs to full project data
-            const projRes = await fetch('/api/projects');
-            const { projects: allProjects } = await projRes.json();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const byId = Object.fromEntries((allProjects as any[]).map((p: any) => [p.id, p]));
-
-            const display = recommendations
-              .map((r: ProjectRecommendation) => {
-                const p = byId[r.projectId];
-                if (!p) return null;
-                return toDisplayProject(p, r.matchType as MatchType);
-              })
-              .filter((p): p is DisplayProject => p !== null);
-
-            if (!cancelled) setProjects(display);
-          } else {
-            if (!cancelled) setProjects([]);
-          }
-          return;
-        }
-        // Fall through to unauthenticated path on non-OK (e.g. 429 limit)
-      }
-
-      // Unauthenticated (or recommendation failure) path: filter projects by material
-      const res = await fetch(`/api/projects?materials=${selectedIds.join(',')}`);
+      const res = await fetch('/api/activity-recommendations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ materialIds: selectedIds, childAge }),
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { projects: raw }: { projects: any[] } = await res.json();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (!cancelled) setProjects(raw.map((p: any) => toDisplayProject(p)));
+      const data: { matches: ActivityMatch[]; aiSuggestions: AiSuggestion[] } = await res.json();
+      if (!cancelled) {
+        setMatches(data.matches ?? []);
+        setAiSuggestions(data.aiSuggestions ?? []);
+      }
     }
 
     load()
@@ -131,12 +92,12 @@ function ResultsContent() {
       .finally(() => { if (!cancelled) setLoading(false) });
 
     return () => { cancelled = true; };
-  }, [session?.access_token, selectedIds.join(","), childAge]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedIds.join(","), childAge]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const filtered = projects.filter(p => {
-    if (activeFilter === "Quick") return parseInt(p.timeEstimate) <= 15;
-    if (activeFilter === "Low Mess") return p.cleanupLevel === "Low";
-    if (activeFilter === "Independent") return p.supervisionLevel === "Independent";
+  const filtered = matches.filter(({ activity }) => {
+    if (activeFilter === "Quick") return activity.time_minutes <= 20;
+    if (activeFilter === "Easy") return activity.difficulty === "easy";
+    if (activeFilter === "Family") return activity.age_ranges.includes("family");
     return true;
   });
 
@@ -180,8 +141,8 @@ function ResultsContent() {
         <div className="pb-8">
           {filtered.length > 0 && (
             <div className="px-4 grid grid-cols-2 gap-3">
-              {filtered.map(project => (
-                <ProjectCard key={project.id} project={project} showMatch={!!project.matchLabel} />
+              {filtered.map(({ activity, matchLabel }) => (
+                <ActivityCard key={activity.id} activity={activity} matchLabel={matchLabel} />
               ))}
             </div>
           )}
