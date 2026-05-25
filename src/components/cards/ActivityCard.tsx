@@ -36,9 +36,10 @@ const DIFFICULTY_COLOR: Record<string, string> = {
 
 interface ActivityCardProps {
   activity: Activity;
+  matchLabel?: "Perfect Match" | "Good Match" | "Partial Match";
 }
 
-export function ActivityCard({ activity }: ActivityCardProps) {
+export function ActivityCard({ activity, matchLabel }: ActivityCardProps) {
   const bg = CATEGORY_COLORS[activity.category] ?? "bg-cream-100";
   const emoji = CATEGORY_EMOJI[activity.category] ?? "✨";
   const diffColor = DIFFICULTY_COLOR[activity.difficulty] ?? "bg-cream-100 text-walnut-700";
@@ -48,12 +49,21 @@ export function ActivityCard({ activity }: ActivityCardProps) {
       <div className="bg-white rounded-3xl shadow-card hover:shadow-card-hover transition-all duration-200 overflow-hidden h-full flex flex-col">
         <div className={cn("h-28 flex items-center justify-center relative flex-shrink-0", bg)}>
           <span className="text-4xl">{emoji}</span>
-          <span className={cn(
-            "absolute top-3 right-3 px-2.5 py-0.5 rounded-full text-xs font-heading font-semibold",
-            diffColor
-          )}>
-            {activity.difficulty}
-          </span>
+          {matchLabel ? (
+            <span className={cn(
+              "absolute top-3 right-3 px-2.5 py-0.5 rounded-full text-xs font-heading font-semibold",
+              matchLabel === "Perfect Match" ? "bg-green-100 text-green-700" : "bg-cream-100 text-walnut-700"
+            )}>
+              {matchLabel}
+            </span>
+          ) : (
+            <span className={cn(
+              "absolute top-3 right-3 px-2.5 py-0.5 rounded-full text-xs font-heading font-semibold",
+              diffColor
+            )}>
+              {activity.difficulty}
+            </span>
+          )}
           {activity.premium && (
             <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-xs font-heading font-semibold bg-yellow-400 text-yellow-900">
               Plus
