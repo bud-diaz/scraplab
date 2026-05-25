@@ -158,3 +158,42 @@ export interface ScanResult {
   detectedMaterials: DetectedMaterial[]
   requiresConfirmation: boolean
 }
+
+export type ActivityCategory = 'cooperative' | 'science' | 'engineering' | 'storytelling' | 'pretend-play' | 'seasonal' | 'puzzle' | 'art'
+export type ActivityDifficulty = 'easy' | 'medium' | 'hard' | 'adaptive'
+export type ActivityEnergyLevel = 'calm' | 'moderate' | 'active' | 'chaotic-goblin'
+export type ActivityAgeRange = '3-5' | '6-8' | '9-12' | '13+' | 'family'
+
+export interface Activity {
+  id: string
+  title: string
+  slug: string
+  category: ActivityCategory
+  one_liner: string | null
+  description: string | null
+  age_ranges: ActivityAgeRange[]
+  difficulty: ActivityDifficulty
+  time_minutes: number
+  estimated_cleanup_minutes: number
+  attention_span_fit: string
+  energy_level: ActivityEnergyLevel
+  solo_or_group: string
+  supervision_level: string
+  environment: string[]
+  materials_required: string[]
+  materials_optional: string[]
+  scrap_tags: string[]
+  theme_tags: string[]
+  skill_tags: string[]
+  prompt_type: string
+  learning_angle: string | null
+  expansion_prompts: string[]
+  safety_notes: string[]
+  hero_image_prompt: string | null
+  premium: boolean
+  featured: boolean
+  seasonal: string | null
+  inventory_friendly: boolean
+  remixable: boolean
+  created_at: string
+}
