@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
   matches.sort((a, b) => b.matchScore - a.matchScore)
 
   // 5. AI fallback when fewer than 3 DB matches
-  let aiSuggestions = []
+  let aiSuggestions: import('@/lib/ai/suggestions').AiSuggestion[] = []
   if (matches.length < 3) {
     const materialNames = (materials ?? []).map(m => m.name)
     const needed = 3 - matches.length
