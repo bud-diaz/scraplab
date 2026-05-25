@@ -9,7 +9,7 @@ export function UpgradeActions() {
   const { user, session } = useAuth()
   const router = useRouter()
   const [plan, setPlan] = useState<'free' | 'plus' | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
 
   useEffect(() => {
     if (!user || !session) return
@@ -26,7 +26,7 @@ export function UpgradeActions() {
       router.push('/auth')
       return
     }
-    setLoading(true)
+    setCheckoutLoading(true)
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
@@ -37,30 +37,10 @@ export function UpgradeActions() {
         window.location.href = data.url
       } else {
         console.error('No checkout URL returned:', data)
-        setLoading(false)
+        setCheckoutLoading(false)
       }
     } catch {
-      setLoading(false)
-    }
-  }
-
-  const handlePortal = async () => {
-    if (!session) return
-    setLoading(true)
-    try {
-      const res = await fetch('/api/billing/portal', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-      const data = await res.json()
-      if (data.url) {
-        window.location.href = data.url
-      } else {
-        console.error('No portal URL returned:', data)
-        setLoading(false)
-      }
-    } catch {
-      setLoading(false)
+      setCheckoutLoading(false)
     }
   }
 
@@ -78,10 +58,9 @@ export function UpgradeActions() {
           variant="secondary"
           size="lg"
           className="w-full"
-          onClick={handlePortal}
-          disabled={loading}
+          onClick={() => router.push('/subscription')}
         >
-          {loading ? 'Opening portal…' : 'Manage subscription'}
+          Manage subscription
         </Button>
         <p className="text-center text-xs text-walnut-500 font-body">
           Cancel or update payment from the billing portal.
@@ -97,9 +76,9 @@ export function UpgradeActions() {
         size="lg"
         className="w-full bg-orange-500 hover:bg-orange-600"
         onClick={handleCheckout}
-        disabled={loading}
+        disabled={checkoutLoading}
       >
-        {loading ? 'Redirecting to checkout…' : 'Upgrade to ScrapLab Plus — $4.99/mo'}
+        {checkoutLoading ? 'Redirecting to checkout…' : 'Upgrade to ScrapLab Plus — $4.99/mo'}
       </Button>
       <p className="text-center text-xs text-walnut-500 font-body">Cancel anytime. No pressure.</p>
     </div>
