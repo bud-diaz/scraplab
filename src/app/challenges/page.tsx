@@ -6,10 +6,10 @@ export default function ChallengesPage() {
   return (
     <AppShell>
       <div className="max-w-2xl mx-auto">
-        <div className="px-4 py-5 bg-gradient-to-br from-walnut-700 to-charcoal-900 m-4 rounded-3xl text-white">
-          <p className="text-orange-400 font-heading font-semibold text-xs uppercase tracking-widest mb-1">Weekly</p>
+        <div className="px-4 py-5 bg-gradient-to-br from-orange-500 to-orange-700 m-4 rounded-3xl text-white">
+          <p className="text-sunshine font-heading font-semibold text-xs uppercase tracking-widest mb-1">Weekly</p>
           <h1 className="font-heading font-bold text-2xl mb-1">ScrapLab Challenges</h1>
-          <p className="text-white/60 text-sm font-body">Push your builds further.</p>
+          <p className="text-white/80 text-sm font-body">Push your builds further.</p>
         </div>
 
         <div className="px-4 space-y-3 pb-4">

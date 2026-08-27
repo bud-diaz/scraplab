@@ -1,3 +1,5 @@
+import type { SupervisionLevel } from "@/types";
+
 // IDs match the seeded UUIDs in supabase/seed.sql so the fallback works
 // even when the /api/materials call hasn't resolved yet.
 export const materials = [
@@ -37,7 +39,7 @@ export type Project = {
   ageRange: string;
   timeEstimate: string;
   cleanupLevel: "Low" | "Medium" | "High";
-  supervisionLevel: "Independent" | "Light Assist" | "Adult Assist";
+  supervisionLevel: SupervisionLevel;
   difficulty: "Easy" | "Medium" | "Hard";
   requiredMaterials: string[];
   optionalMaterials: string[];
@@ -64,7 +66,7 @@ export const projects: Project[] = [
     ageRange: "4–8",
     timeEstimate: "20 min",
     cleanupLevel: "Low",
-    supervisionLevel: "Light Assist",
+    supervisionLevel: "check_in",
     difficulty: "Easy",
     requiredMaterials: ["cardboard", "tape", "markers"],
     optionalMaterials: ["foil", "toilet-roll"],
@@ -125,7 +127,7 @@ export const projects: Project[] = [
     ageRange: "5–10",
     timeEstimate: "25 min",
     cleanupLevel: "Low",
-    supervisionLevel: "Light Assist",
+    supervisionLevel: "check_in",
     difficulty: "Medium",
     requiredMaterials: ["bottle-caps", "cardboard", "glue", "markers"],
     optionalMaterials: ["foil", "tape", "toilet-roll"],
@@ -178,7 +180,7 @@ export const projects: Project[] = [
     ageRange: "3–7",
     timeEstimate: "15 min",
     cleanupLevel: "Medium",
-    supervisionLevel: "Independent",
+    supervisionLevel: "independent",
     difficulty: "Easy",
     requiredMaterials: ["egg-carton", "markers", "glue"],
     optionalMaterials: ["string", "foil", "tape"],
@@ -230,7 +232,7 @@ export const projects: Project[] = [
     ageRange: "4–9",
     timeEstimate: "10 min",
     cleanupLevel: "Low",
-    supervisionLevel: "Light Assist",
+    supervisionLevel: "check_in",
     difficulty: "Easy",
     requiredMaterials: ["plastic-cup", "string"],
     optionalMaterials: ["markers"],
@@ -283,7 +285,7 @@ export const projects: Project[] = [
     ageRange: "5–10",
     timeEstimate: "30 min",
     cleanupLevel: "Medium",
-    supervisionLevel: "Light Assist",
+    supervisionLevel: "check_in",
     difficulty: "Medium",
     requiredMaterials: ["cardboard", "markers", "tape", "string"],
     optionalMaterials: ["foil", "glue"],

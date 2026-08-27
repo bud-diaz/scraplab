@@ -21,11 +21,11 @@ export function BottomNav() {
     access.usage.recommendationsToday >= (access.limits.dailyRecommendations ?? 3);
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-kraft-300 shadow-card-lg">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 mx-3 mb-3 bg-white rounded-full shadow-card-lg overflow-hidden">
       {atLimit && (
         <div className="h-0.5 bg-gradient-to-r from-orange-400 to-red-500" />
       )}
-      <div className="flex items-center justify-around px-2 py-2">
+      <div className="flex items-center justify-around px-1.5 py-2">
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href !== "/" && pathname.startsWith(href));
           const showBadge = href === '/profile' && atLimit;
@@ -33,16 +33,18 @@ export function BottomNav() {
             <Link
               key={href}
               href={href}
-              className={cn(
-                "relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors min-w-0",
-                active ? "text-builder-500" : "text-charcoal-800"
-              )}
+              className="relative flex flex-col items-center gap-0.5 px-2.5 py-1 rounded-2xl transition-colors min-w-0"
             >
-              <Icon size={20} strokeWidth={active ? 2.5 : 1.8} />
+              <span className={cn(
+                "flex items-center justify-center w-8 h-8 rounded-full transition-colors",
+                active ? "bg-builder-500" : "bg-transparent"
+              )}>
+                <Icon size={18} strokeWidth={active ? 2.5 : 1.8} className={active ? "text-white" : "text-kraft-600"} />
+              </span>
               {showBadge && (
-                <span className="absolute top-1 right-1.5 w-2 h-2 bg-orange-500 rounded-full" />
+                <span className="absolute top-0 right-1 w-2 h-2 bg-coral rounded-full" />
               )}
-              <span className={cn("text-[10px] font-heading font-medium", active ? "text-builder-500" : "text-charcoal-800")}>
+              <span className={cn("text-[10px] font-heading font-medium", active ? "text-builder-500" : "text-kraft-600")}>
                 {label}
               </span>
             </Link>

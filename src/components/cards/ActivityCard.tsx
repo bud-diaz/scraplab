@@ -3,7 +3,8 @@ import Link from "next/link";
 import { Clock, Zap, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MetadataChip } from "@/components/ui/MetadataChip";
-import type { Activity } from "@/types";
+import { SupervisionBadge } from "@/components/ui/SupervisionBadge";
+import type { Activity, SupervisionLevel } from "@/types";
 
 const CATEGORY_COLORS: Record<string, string> = {
   engineering: "bg-blue-100",
@@ -27,11 +28,13 @@ const CATEGORY_EMOJI: Record<string, string> = {
   seasonal: "🍂",
 };
 
+// Neutral Ink/Slate scale, not green/yellow/red — difficulty must never be
+// mistaken for the Leaf/Amber/Coral supervision-safety coding on the same card.
 const DIFFICULTY_COLOR: Record<string, string> = {
-  easy: "bg-green-100 text-green-700",
-  medium: "bg-yellow-100 text-yellow-700",
-  hard: "bg-red-100 text-red-700",
-  adaptive: "bg-blue-100 text-blue-700",
+  easy: "bg-kraft-300/50 text-walnut-700",
+  medium: "bg-kraft-500/30 text-walnut-800",
+  hard: "bg-charcoal-900 text-white",
+  adaptive: "bg-builder-500/15 text-builder-600",
 };
 
 interface ActivityCardProps {
@@ -65,7 +68,7 @@ export function ActivityCard({ activity, matchLabel }: ActivityCardProps) {
             </span>
           )}
           {activity.premium && (
-            <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-xs font-heading font-semibold bg-yellow-400 text-yellow-900">
+            <span className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-xs font-heading font-semibold bg-sunshine text-charcoal-900">
               Plus
             </span>
           )}
@@ -83,6 +86,9 @@ export function ActivityCard({ activity, matchLabel }: ActivityCardProps) {
             <MetadataChip icon={<Clock size={10} />} label={`${activity.time_minutes}m`} />
             <MetadataChip icon={<Zap size={10} />} label={activity.energy_level} />
             <MetadataChip icon={<Users size={10} />} label={activity.age_ranges[0] ?? "all ages"} />
+            {activity.supervision_level && (
+              <SupervisionBadge level={activity.supervision_level as SupervisionLevel} />
+            )}
           </div>
         </div>
       </div>

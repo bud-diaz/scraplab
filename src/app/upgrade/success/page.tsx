@@ -14,7 +14,7 @@ export default function UpgradeSuccessPage() {
   return (
     <AppShell>
       <div className="max-w-md mx-auto px-4 pt-12 pb-10 flex flex-col items-center text-center">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center mb-6 shadow-lg">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center mb-6 shadow-card-lg">
           <Sparkles size={36} className="text-white" />
         </div>
 
@@ -43,7 +43,7 @@ export default function UpgradeSuccessPage() {
 
         <Link
           href="/"
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-heading font-semibold text-base rounded-2xl px-8 py-4 transition-colors text-center block"
+          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-heading font-semibold text-base rounded-full px-8 py-4 transition-colors text-center block"
         >
           Start building
         </Link>

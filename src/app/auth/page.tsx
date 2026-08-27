@@ -50,13 +50,14 @@ export default function AuthPage() {
   if (loading) return null;
 
   return (
-    <div className="min-h-screen bg-cream-50 flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-scraplab-blue flex flex-col">
+      <div className="flex flex-col items-center pt-14 pb-10 px-4 text-white">
+        <Image src="/logo.png" alt="ScrapLab" height={64} width={160} className="object-contain brightness-0 invert" priority />
+        <p className="text-sm text-white/80 font-body mt-1">Build More. Buy Less.</p>
+      </div>
+
+      <div className="flex-1 bg-cream-50 rounded-t-[32px] flex flex-col items-center px-4 pt-8">
       <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <Image src="/logo.png" alt="ScrapLab" height={80} width={200} className="object-contain" priority />
-          <p className="text-sm text-walnut-600 font-body -mt-1">Build More. Buy Less.</p>
-        </div>
 
         {confirmed ? (
           <div className="bg-white rounded-3xl shadow-card p-8 text-center">
@@ -137,7 +138,7 @@ export default function AuthPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-builder-500 hover:bg-builder-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-heading font-semibold text-sm py-3 rounded-2xl transition-colors"
+                className="w-full bg-builder-500 hover:bg-builder-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-heading font-semibold text-sm py-3 rounded-full transition-colors"
               >
                 {submitting
                   ? (mode === "signin" ? "Signing in…" : "Creating account…")
@@ -147,9 +148,10 @@ export default function AuthPage() {
           </div>
         )}
 
-        <p className="text-center text-xs text-walnut-500 mt-6 font-body">
+        <p className="text-center text-xs text-walnut-500 mt-6 mb-8 font-body">
           By signing up you agree to our terms of service.
         </p>
+      </div>
       </div>
     </div>
   );

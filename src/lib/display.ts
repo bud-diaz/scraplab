@@ -1,4 +1,4 @@
-import type { MatchType } from '@/types'
+import type { MatchType, SupervisionLevel } from '@/types'
 
 export interface DisplayProject {
   id: string
@@ -9,6 +9,7 @@ export interface DisplayProject {
   ageRange: string
   cleanupLevel: string
   supervisionLevel: string
+  supervisionLevelRaw: SupervisionLevel
   difficulty: string
   emoji: string
   bgColor: string
@@ -30,7 +31,7 @@ const CLEANUP_LABEL: Record<string, string> = {
   low: 'Low', medium: 'Medium', high: 'High',
 }
 
-const SUPERVISION_LABEL: Record<string, string> = {
+export const SUPERVISION_LABEL: Record<string, string> = {
   independent: 'Independent',
   check_in: 'Light Check-In',
   adult_assist: 'Adult Assist',
@@ -76,6 +77,7 @@ export function toDisplayProject(
     ageRange: `${project.age_min}–${project.age_max}`,
     cleanupLevel: CLEANUP_LABEL[project.cleanup_level] ?? project.cleanup_level,
     supervisionLevel: SUPERVISION_LABEL[project.supervision_level] ?? project.supervision_level,
+    supervisionLevelRaw: project.supervision_level as SupervisionLevel,
     difficulty: DIFFICULTY_LABEL[project.difficulty] ?? project.difficulty,
     emoji: display.emoji,
     bgColor: display.bgColor,
