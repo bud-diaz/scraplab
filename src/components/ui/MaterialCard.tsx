@@ -1,5 +1,6 @@
 "use client";
 import { cn } from "@/lib/utils";
+import { CheckCircle2 } from "lucide-react";
 
 interface MaterialCardProps {
   id: string;
@@ -14,12 +15,15 @@ export function MaterialCard({ id, name, icon, selected = false, onToggle }: Mat
     <button
       onClick={() => onToggle?.(id)}
       className={cn(
-        "flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all duration-150 w-full active:scale-95",
+        "relative flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all duration-150 w-full active:scale-95",
         selected
           ? "border-builder-500 bg-builder-500/10 shadow-card"
           : "border-kraft-300 bg-white hover:border-kraft-500"
       )}
     >
+      {selected && (
+        <CheckCircle2 size={16} className="absolute top-1.5 right-1.5 text-builder-500 fill-white" strokeWidth={2.5} />
+      )}
       <span className="text-2xl">{icon}</span>
       <span className={cn(
         "text-xs font-heading font-medium text-center leading-tight",

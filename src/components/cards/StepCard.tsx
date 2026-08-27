@@ -19,9 +19,9 @@ export function StepCard({ step }: StepCardProps) {
         </div>
       )}
       {step.safetyNote && (
-        <div className="flex items-start gap-2 bg-orange-500/10 rounded-2xl px-4 py-3">
-          <AlertTriangle size={15} className="text-orange-500 mt-0.5 shrink-0" />
-          <p className="text-sm font-body text-orange-600">{step.safetyNote}</p>
+        <div className="flex items-start gap-2 bg-caution/15 rounded-2xl px-4 py-3">
+          <AlertTriangle size={15} className="text-caution-text mt-0.5 shrink-0" />
+          <p className="text-sm font-body text-caution-text">{step.safetyNote}</p>
         </div>
       )}
     </div>

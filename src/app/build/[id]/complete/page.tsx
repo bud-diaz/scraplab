@@ -1,4 +1,3 @@
-import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { projects as mockProjects } from "@/lib/mock-data";
 import { notFound } from "next/navigation";
@@ -38,20 +37,34 @@ export default async function CompletePage({ params }: { params: Promise<{ id: s
     }
   }
 
+  const confettiDots = [
+    "top-6 left-10", "top-10 right-14", "top-20 left-1/4", "top-8 right-1/3",
+    "top-16 left-1/2", "top-24 right-10", "top-4 left-2/3", "top-28 left-12",
+  ];
+
   return (
-    <AppShell>
-      <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[80vh] px-4 text-center">
-        <div className="w-24 h-24 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center text-4xl mb-6 shadow-card-lg">
+    <div className="min-h-screen bg-scraplab-blue flex flex-col">
+      <div className="relative flex-1 flex flex-col items-center justify-center px-6 pt-14 pb-16 text-center overflow-hidden">
+        {confettiDots.map((pos, i) => (
+          <span
+            key={i}
+            className={`absolute w-2.5 h-2.5 rounded-full bg-sunshine ${pos}`}
+            style={{ opacity: 0.6 + (i % 3) * 0.15 }}
+          />
+        ))}
+        <div className="relative w-24 h-24 bg-white rounded-full flex items-center justify-center text-4xl mb-6 shadow-card-lg">
           {emoji}
         </div>
-        <h1 className="font-heading font-bold text-3xl text-charcoal-900 mb-2">Built it. Nice.</h1>
-        <p className="text-base text-walnut-600 mb-2 font-body">{title}</p>
-        <p className="text-sm text-walnut-500 mb-8 max-w-xs font-body">
+        <h1 className="relative font-heading font-bold text-3xl text-white mb-2">Built it. Nice.</h1>
+        <p className="relative text-base text-white/85 mb-1 font-body">{title}</p>
+        <p className="relative text-sm text-white/70 max-w-xs font-body">
           Great work! You just built something awesome from household materials.
         </p>
+      </div>
 
-        <div className="bg-cream-100 rounded-3xl p-4 mb-8 w-full max-w-xs">
-          <p className="text-sm font-heading font-medium text-charcoal-800 mb-3">How was it?</p>
+      <div className="bg-cream-50 rounded-t-[32px] px-4 pt-8 pb-8 flex flex-col items-center">
+        <div className="bg-white rounded-3xl shadow-card p-4 mb-6 w-full max-w-xs">
+          <p className="text-sm font-heading font-medium text-charcoal-800 mb-3 text-center">How was it?</p>
           <div className="flex gap-2 justify-center">
             {["😅 Too Hard", "👍 Just Right", "⚡ Too Easy"].map(label => (
               <button
@@ -73,6 +86,6 @@ export default async function CompletePage({ params }: { params: Promise<{ id: s
           </Link>
         </div>
       </div>
-    </AppShell>
+    </div>
   );
 }

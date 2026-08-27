@@ -2,9 +2,10 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { MaterialsChecklist } from "@/components/ui/MaterialsChecklist";
 import { MetadataChip } from "@/components/ui/MetadataChip";
+import { SupervisionBadge } from "@/components/ui/SupervisionBadge";
 import { Button } from "@/components/ui/Button";
 import { projects as mockProjects } from "@/lib/mock-data";
-import { Clock, Trash2, Users, Shield, BarChart2, ArrowLeft } from "lucide-react";
+import { Clock, Trash2, Users, BarChart2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { createServiceClient } from "@/lib/db/client";
@@ -80,7 +81,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               <MetadataChip icon={<Clock size={11} />} label={mockProject.timeEstimate} />
               <MetadataChip icon={<Trash2 size={11} />} label={mockProject.cleanupLevel + " mess"} />
               <MetadataChip icon={<Users size={11} />} label={"Ages " + mockProject.ageRange} />
-              <MetadataChip icon={<Shield size={11} />} label={mockProject.supervisionLevel} />
+              <SupervisionBadge level={mockProject.supervisionLevel} />
               <MetadataChip icon={<BarChart2 size={11} />} label={mockProject.difficulty} />
             </div>
             <div className="bg-white rounded-3xl shadow-card p-5 mb-4">
@@ -147,7 +148,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             <MetadataChip icon={<Clock size={11} />} label={display.timeEstimate} />
             <MetadataChip icon={<Trash2 size={11} />} label={display.cleanupLevel + " mess"} />
             <MetadataChip icon={<Users size={11} />} label={"Ages " + display.ageRange} />
-            <MetadataChip icon={<Shield size={11} />} label={display.supervisionLevel} />
+            <SupervisionBadge level={display.supervisionLevelRaw} />
             <MetadataChip icon={<BarChart2 size={11} />} label={display.difficulty} />
           </div>
           <div className="bg-white rounded-3xl shadow-card p-5 mb-4">

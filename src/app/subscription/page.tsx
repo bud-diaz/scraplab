@@ -154,42 +154,42 @@ export default function SubscriptionPage() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-walnut-700 to-charcoal-900 rounded-3xl p-6 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -translate-y-10 translate-x-10" />
+            <div className="bg-gradient-to-br from-orange-500 to-orange-700 rounded-3xl p-6 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-10 translate-x-10" />
               <div className="relative">
                 <div className="flex items-center gap-2 mb-1">
-                  <Sparkles size={15} className="text-orange-400" />
-                  <span className="font-heading font-bold text-sm text-orange-400 uppercase tracking-wide">ScrapLab Plus</span>
+                  <Sparkles size={15} className="text-sunshine" />
+                  <span className="font-heading font-bold text-sm text-sunshine uppercase tracking-wide">ScrapLab Plus</span>
                 </div>
                 <div className="flex items-baseline gap-1 mb-4">
                   <span className="font-heading font-bold text-3xl">$4.99</span>
-                  <span className="text-white/60 text-sm">/mo</span>
+                  <span className="text-white/80 text-sm">/mo</span>
                 </div>
                 <div className="space-y-2 mb-5">
                   {plusFeatures.map(f => (
                     <div key={f} className="flex items-center gap-2">
-                      <Check size={12} className="text-orange-400 shrink-0" />
-                      <span className="text-xs font-body text-white/85">{f}</span>
+                      <Check size={12} className="text-white shrink-0" />
+                      <span className="text-xs font-body text-white/90">{f}</span>
                     </div>
                   ))}
                 </div>
 
                 {error && (
-                  <div className="bg-red-900/30 border border-red-400/30 rounded-xl px-3 py-2 mb-3">
-                    <p className="text-xs text-red-300 font-body">{error}</p>
+                  <div className="bg-coral/20 border border-white/30 rounded-xl px-3 py-2 mb-3">
+                    <p className="text-xs text-white font-body">{error}</p>
                   </div>
                 )}
 
                 <Button
                   variant="primary"
                   size="lg"
-                  className="w-full bg-orange-500 hover:bg-orange-600"
+                  className="w-full bg-white text-orange-600 hover:bg-white/90"
                   onClick={handleCheckout}
                   disabled={checkoutLoading}
                 >
                   {checkoutLoading ? 'Redirecting to checkout…' : 'Upgrade to Plus — $4.99/mo'}
                 </Button>
-                <p className="text-center text-white/50 text-xs font-body mt-2">Cancel anytime. No pressure.</p>
+                <p className="text-center text-white/70 text-xs font-body mt-2">Cancel anytime. No pressure.</p>
               </div>
             </div>
           </div>

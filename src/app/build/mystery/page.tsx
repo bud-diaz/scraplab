@@ -81,10 +81,10 @@ export default function MysteryBuildPage() {
   return (
     <AppShell>
       <div className="max-w-2xl mx-auto">
-        <div className="px-4 pt-6 pb-4 bg-gradient-to-br from-walnut-700 to-charcoal-900 m-4 rounded-3xl text-white">
-          <p className="text-orange-400 font-heading font-semibold text-xs uppercase tracking-widest mb-1">Plus Challenge</p>
+        <div className="px-4 pt-6 pb-4 bg-gradient-to-br from-orange-500 to-orange-700 m-4 rounded-3xl text-white">
+          <p className="text-sunshine font-heading font-semibold text-xs uppercase tracking-widest mb-1">Plus Challenge</p>
           <h1 className="font-heading font-bold text-2xl mb-1">Mystery Build</h1>
-          <p className="text-white/60 text-sm font-body">3 random materials. You figure it out.</p>
+          <p className="text-white/80 text-sm font-body">3 random materials. You figure it out.</p>
         </div>
 
         <div className="px-4 space-y-4 pb-8">

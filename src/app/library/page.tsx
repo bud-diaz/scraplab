@@ -103,7 +103,10 @@ export default function LibraryPage() {
             ) : savedDisplay.length > 0 ? (
               <div className="grid grid-cols-2 gap-3">
                 {savedDisplay.map(project => (
-                  <ProjectCard key={project.id} project={project} />
+                  <ProjectCard
+                    key={project.id}
+                    project={{ ...project, supervisionLevel: project.supervisionLevelRaw }}
+                  />
                 ))}
               </div>
             ) : (

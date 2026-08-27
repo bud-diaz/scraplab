@@ -3,8 +3,10 @@ import Link from "next/link";
 import { Clock, Trash2, Users, Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MetadataChip } from "@/components/ui/MetadataChip";
+import { SupervisionBadge } from "@/components/ui/SupervisionBadge";
 import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
+import type { SupervisionLevel } from "@/types";
 
 export interface ProjectCardProject {
   id: string;
@@ -14,6 +16,7 @@ export interface ProjectCardProject {
   timeEstimate: string;
   cleanupLevel: string;
   ageRange: string;
+  supervisionLevel?: SupervisionLevel;
   matchLabel?: "Great Match" | "Close Match" | "Partial Match";
 }
 
@@ -79,6 +82,7 @@ export function ProjectCard({ project, showMatch = false }: ProjectCardProps) {
             <MetadataChip icon={<Clock size={11} />} label={project.timeEstimate} />
             <MetadataChip icon={<Trash2 size={11} />} label={project.cleanupLevel + " mess"} />
             <MetadataChip icon={<Users size={11} />} label={"Ages " + project.ageRange} />
+            {project.supervisionLevel && <SupervisionBadge level={project.supervisionLevel} />}
           </div>
         </div>
       </div>

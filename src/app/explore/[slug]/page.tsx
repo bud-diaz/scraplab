@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { MetadataChip } from "@/components/ui/MetadataChip";
+import { SupervisionBadge } from "@/components/ui/SupervisionBadge";
 import { Button } from "@/components/ui/Button";
 import { createServiceClient } from "@/lib/db/client";
 import { Clock, Zap, Users, ArrowLeft, Lightbulb, Shield, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Activity } from "@/types";
+import type { Activity, SupervisionLevel } from "@/types";
 
 const CATEGORY_COLORS: Record<string, string> = {
   engineering: "bg-blue-100",
@@ -29,11 +30,13 @@ const CATEGORY_EMOJI: Record<string, string> = {
   seasonal: "🍂",
 };
 
+// Neutral Ink/Slate scale, not green/yellow/red — difficulty must never be
+// mistaken for the Leaf/Amber/Coral supervision-safety coding on this page.
 const DIFFICULTY_COLOR: Record<string, string> = {
-  easy: "bg-green-100 text-green-700",
-  medium: "bg-yellow-100 text-yellow-700",
-  hard: "bg-red-100 text-red-700",
-  adaptive: "bg-blue-100 text-blue-700",
+  easy: "bg-kraft-300/50 text-walnut-700",
+  medium: "bg-kraft-500/30 text-walnut-800",
+  hard: "bg-charcoal-900 text-white",
+  adaptive: "bg-builder-500/15 text-builder-600",
 };
 
 async function fetchActivity(slug: string): Promise<Activity | null> {
@@ -71,7 +74,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
             {activity.difficulty}
           </span>
           {activity.premium && (
-            <span className="absolute bottom-4 right-4 px-2.5 py-0.5 rounded-full text-xs font-heading font-semibold bg-yellow-400 text-yellow-900">
+            <span className="absolute bottom-4 right-4 px-2.5 py-0.5 rounded-full text-xs font-heading font-semibold bg-sunshine text-charcoal-900">
               Plus
             </span>
           )}
@@ -93,7 +96,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
             <MetadataChip icon={<Clock size={11} />} label={`${activity.time_minutes} min`} />
             <MetadataChip icon={<Zap size={11} />} label={activity.energy_level} />
             <MetadataChip icon={<Users size={11} />} label={activity.age_ranges.join(", ")} />
-            <MetadataChip icon={<Shield size={11} />} label={activity.supervision_level} />
+            <SupervisionBadge level={activity.supervision_level as SupervisionLevel} />
             <MetadataChip icon={<Wrench size={11} />} label={activity.solo_or_group} />
           </div>
 
@@ -135,7 +138,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
 
           {/* Learning angle */}
           {activity.learning_angle && (
-            <div className="bg-builder-50 rounded-3xl p-5 mb-4 flex gap-3">
+            <div className="bg-builder-500/10 rounded-3xl p-5 mb-4 flex gap-3">
               <Lightbulb size={18} className="text-builder-500 shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs font-heading font-semibold text-builder-700 mb-0.5">Learning angle</p>
@@ -161,14 +164,14 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
 
           {/* Safety notes */}
           {activity.safety_notes.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 mb-6">
-              <h2 className="font-heading font-semibold text-sm text-amber-800 mb-2 flex items-center gap-2">
+            <div className="bg-caution/15 rounded-3xl p-5 mb-6">
+              <h2 className="font-heading font-semibold text-sm text-caution-text mb-2 flex items-center gap-2">
                 <Shield size={14} />
                 Safety notes
               </h2>
               <ul className="space-y-1">
                 {activity.safety_notes.map((n, i) => (
-                  <li key={i} className="text-sm font-body text-amber-800">{n}</li>
+                  <li key={i} className="text-sm font-body text-caution-text">{n}</li>
                 ))}
               </ul>
             </div>

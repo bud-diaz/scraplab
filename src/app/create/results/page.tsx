@@ -19,9 +19,9 @@ function AiSuggestionCard({ suggestion, index }: { suggestion: AiSuggestion; ind
   const [expanded, setExpanded] = useState(false);
   return (
     <div className="bg-white rounded-3xl shadow-card overflow-hidden">
-      <div className="h-28 bg-kraft-100 flex items-center justify-center relative">
+      <div className="h-28 bg-cream-100 flex items-center justify-center relative">
         <span className="text-4xl">{AI_EMOJIS[index % AI_EMOJIS.length]}</span>
-        <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-heading font-semibold bg-builder-100 text-builder-700">
+        <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-heading font-semibold bg-builder-500/15 text-builder-700">
           AI Idea
         </span>
       </div>

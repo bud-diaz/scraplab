@@ -42,22 +42,22 @@ export default function UpgradePage() {
                 ))}
               </div>
             </div>
-            <div className="bg-gradient-to-br from-walnut-700 to-charcoal-900 rounded-3xl p-5 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-white/5 rounded-full -translate-y-8 translate-x-8" />
-              <span className="inline-block bg-orange-500 text-white text-[10px] font-heading font-bold px-2.5 py-1 rounded-full mb-2">BEST VALUE</span>
+            <div className="bg-gradient-to-br from-orange-500 to-orange-700 rounded-3xl p-5 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
+              <span className="inline-block bg-sunshine text-charcoal-900 text-[10px] font-heading font-bold px-2.5 py-1 rounded-full mb-2">BEST VALUE</span>
               <h2 className="font-heading font-bold text-lg mb-1">Plus</h2>
               <div className="flex items-baseline gap-1 mb-4">
                 <span className="font-heading font-bold text-2xl">$4.99</span>
-                <span className="text-white/60 text-xs">/mo</span>
+                <span className="text-white/80 text-xs">/mo</span>
               </div>
               <div className="space-y-2 relative">
                 {features.filter(f => f.plus).slice(0, 5).map(f => (
                   <div key={f.label} className="flex items-center gap-2">
-                    <Check size={12} className="text-orange-400 shrink-0" />
+                    <Check size={12} className="text-white shrink-0" />
                     <span className="text-xs font-body text-white/90">{f.label}</span>
                   </div>
                 ))}
-                <span className="text-white/40 text-xs">+ more</span>
+                <span className="text-white/70 text-xs">+ more</span>
               </div>
             </div>
           </div>
