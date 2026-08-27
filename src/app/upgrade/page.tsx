@@ -36,13 +36,13 @@ export default function UpgradePage() {
               <div className="space-y-2">
                 {features.filter(f => f.free).slice(0, 4).map(f => (
                   <div key={f.label} className="flex items-center gap-2">
-                    <Check size={12} className="text-green-600 shrink-0" />
+                    <Check size={12} className="text-builder-500 shrink-0" />
                     <span className="text-xs font-body text-charcoal-800">{f.label}</span>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="bg-gradient-to-br from-orange-500 to-orange-700 rounded-3xl p-5 text-white relative overflow-hidden">
+            <div className="bg-scraplab-blue rounded-3xl p-5 text-white relative overflow-hidden">
               <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
               <span className="inline-block bg-sunshine text-charcoal-900 text-[10px] font-heading font-bold px-2.5 py-1 rounded-full mb-2">BEST VALUE</span>
               <h2 className="font-heading font-bold text-lg mb-1">Plus</h2>
@@ -75,7 +75,7 @@ export default function UpgradePage() {
                 <span className="text-xs font-body text-charcoal-800">{f.label}</span>
                 <div className="flex justify-center">
                   {f.free
-                    ? <Check size={14} className="text-green-500" />
+                    ? <Check size={14} className="text-builder-500" />
                     : <X size={14} className="text-cream-200" />}
                 </div>
                 <div className="flex justify-center">

@@ -58,7 +58,7 @@ export function ProfileMenu() {
                 {item.badge && (
                   <span className="text-[10px] bg-cream-100 text-walnut-600 px-2 py-0.5 rounded-full font-heading font-medium">{item.badge}</span>
                 )}
-                <ChevronRight size={14} className="text-walnut-400" />
+                <ChevronRight size={14} className="text-walnut-500" />
               </Link>
             ))}
           </div>

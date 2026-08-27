@@ -28,15 +28,15 @@ export function PlanUsageIndicator() {
     <Link
       href="/upgrade"
       className={`flex items-center gap-2.5 px-3 py-1.5 rounded-2xl text-xs font-heading font-semibold transition-colors ${
-        atLimit ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-cream-100 text-walnut-700 hover:bg-cream-200'
+        atLimit ? 'bg-coral/10 text-coral-text hover:bg-coral/20' : 'bg-cream-100 text-walnut-700 hover:bg-cream-200'
       }`}
     >
-      <span className="whitespace-nowrap">
+      <span className="tabular whitespace-nowrap">
         {atLimit ? 'Limit reached' : `${used}/${limit} builds today`}
       </span>
-      <div className="w-16 h-1.5 bg-cream-300 rounded-full overflow-hidden">
+      <div className="w-16 h-1.5 bg-cream-200 rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all ${atLimit ? 'bg-red-500' : 'bg-builder-500'}`}
+          className={`h-full rounded-full transition-all ${atLimit ? 'bg-coral' : 'bg-builder-500'}`}
           style={{ width: `${pct}%` }}
         />
       </div>

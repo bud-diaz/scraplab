@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ProjectCard } from "@/components/cards/ProjectCard";
+import { FilterChip } from "@/components/ui/FilterChip";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useAuth } from "@/lib/auth-context";
 import { toDisplayProject } from "@/lib/display";
@@ -74,21 +75,25 @@ export default function LibraryPage() {
   return (
     <AppShell>
       <div className="max-w-2xl mx-auto">
-        <PageHeader title="Your Library" subtitle="Saved projects and build history" />
+        <PageHeader title="Build Log" subtitle="Saved projects and build history" />
 
-        <div className="px-4 mb-4 flex gap-1 bg-cream-100 rounded-2xl p-1">
+        {/* Spec §6: a dense tab bar shouldn't be the first thing under the
+            header. The counts lead, and the views read as a secondary filter
+            row in the same chip language the rest of the app uses. */}
+        <p className="px-4 pb-3 font-body text-sm text-walnut-600">
+          <span className="tabular font-semibold text-charcoal-900">{savedProjects?.length ?? 0}</span> saved
+          {" · "}
+          <span className="tabular font-semibold text-charcoal-900">{historyProjects?.length ?? 0}</span> built
+        </p>
+
+        <div className="mb-4 flex gap-2 overflow-x-auto px-4 pb-1">
           {tabs.map(tab => (
-            <button
+            <FilterChip
               key={tab}
+              label={tab}
+              active={activeTab === tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2 text-sm font-heading font-semibold rounded-xl transition-all ${
-                activeTab === tab
-                  ? "bg-white text-charcoal-900 shadow-card"
-                  : "text-walnut-600 hover:text-charcoal-900"
-              }`}
-            >
-              {tab}
-            </button>
+            />
           ))}
         </div>
 
@@ -141,8 +146,8 @@ export default function LibraryPage() {
                         <p className="text-xs text-walnut-500">{display.timeEstimate} · {display.cleanupLevel} mess</p>
                       </div>
                       <span className={`text-xs px-2 py-1 rounded-full font-heading font-semibold ${
-                        p.status === 'completed' ? 'bg-green-100 text-green-700' :
-                        p.status === 'abandoned' ? 'bg-red-50 text-red-600' :
+                        p.status === 'completed' ? 'bg-sunshine/30 text-charcoal-900' :
+                        p.status === 'abandoned' ? 'bg-kraft-300 text-walnut-700' :
                         'bg-cream-200 text-walnut-600'
                       }`}>
                         {p.status === 'completed' ? 'Done' : p.status === 'abandoned' ? 'Stopped' : 'In Progress'}

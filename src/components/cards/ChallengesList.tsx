@@ -19,7 +19,7 @@ const challenges: Challenge[] = [
     label: "Weekend Build Challenge",
     description: "Build something that can carry 5 things using only recyclables.",
     badge: "Active",
-    badgeColor: "bg-green-100 text-green-700",
+    badgeColor: "bg-orange-500/15 text-orange-700",
     href: "#",
     locked: false,
     color: "bg-builder-500",

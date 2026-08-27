@@ -8,8 +8,8 @@ import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
 const navItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/create", label: "Create", icon: PlusCircle },
-  { href: "/library", label: "Library", icon: BookOpen },
-  { href: "/explore", label: "Explore", icon: Compass },
+  { href: "/library", label: "Build Log", icon: BookOpen },
+  { href: "/explore", label: "Browse", icon: Compass },
   { href: "/profile", label: "Profile", icon: User },
 ];
 
@@ -23,7 +23,7 @@ export function BottomNav() {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 mx-3 mb-3 bg-white rounded-full shadow-card-lg overflow-hidden">
       {atLimit && (
-        <div className="h-0.5 bg-gradient-to-r from-orange-400 to-red-500" />
+        <div className="h-0.5 bg-coral" />
       )}
       <div className="flex items-center justify-around px-1.5 py-2">
         {navItems.map(({ href, label, icon: Icon }) => {

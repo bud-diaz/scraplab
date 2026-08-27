@@ -81,7 +81,7 @@ export default function MysteryBuildPage() {
   return (
     <AppShell>
       <div className="max-w-2xl mx-auto">
-        <div className="px-4 pt-6 pb-4 bg-gradient-to-br from-orange-500 to-orange-700 m-4 rounded-3xl text-white">
+        <div className="px-4 pt-6 pb-4 bg-scraplab-blue m-4 rounded-3xl text-white">
           <p className="text-sunshine font-heading font-semibold text-xs uppercase tracking-widest mb-1">Plus Challenge</p>
           <h1 className="font-heading font-bold text-2xl mb-1">Mystery Build</h1>
           <p className="text-white/80 text-sm font-body">3 random materials. You figure it out.</p>
@@ -138,7 +138,7 @@ export default function MysteryBuildPage() {
 
           {!loading && error && (
             <div className="text-center py-8">
-              <p className="text-sm text-red-600 font-body mb-4">{error}</p>
+              <p className="text-sm text-coral-text font-body mb-4">{error}</p>
               <Button variant="secondary" size="md" onClick={fetchMystery}>Try Again</Button>
             </div>
           )}

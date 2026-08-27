@@ -7,28 +7,7 @@ import { createServiceClient } from "@/lib/db/client";
 import { Clock, Zap, Users, ArrowLeft, Lightbulb, Shield, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Activity, SupervisionLevel } from "@/types";
-
-const CATEGORY_COLORS: Record<string, string> = {
-  engineering: "bg-blue-100",
-  science: "bg-green-100",
-  art: "bg-pink-100",
-  storytelling: "bg-purple-100",
-  "pretend-play": "bg-yellow-100",
-  cooperative: "bg-orange-100",
-  puzzle: "bg-cyan-100",
-  seasonal: "bg-red-100",
-};
-
-const CATEGORY_EMOJI: Record<string, string> = {
-  engineering: "🔧",
-  science: "🔬",
-  art: "🎨",
-  storytelling: "📖",
-  "pretend-play": "🎭",
-  cooperative: "🤝",
-  puzzle: "🧩",
-  seasonal: "🍂",
-};
+import { CATEGORY_TILE, categoryEmoji } from "@/lib/categoryTheme";
 
 // Neutral Ink/Slate scale, not green/yellow/red — difficulty must never be
 // mistaken for the Leaf/Amber/Coral supervision-safety coding on this page.
@@ -55,8 +34,8 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
   const activity = await fetchActivity(slug);
   if (!activity) return notFound();
 
-  const bg = CATEGORY_COLORS[activity.category] ?? "bg-cream-100";
-  const emoji = CATEGORY_EMOJI[activity.category] ?? "✨";
+  const bg = CATEGORY_TILE;
+  const emoji = categoryEmoji(activity.category);
   const diffColor = DIFFICULTY_COLOR[activity.difficulty] ?? "bg-cream-100 text-walnut-700";
 
   return (
@@ -112,7 +91,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
             <h2 className="font-heading font-semibold text-base text-charcoal-900 mb-3">Materials</h2>
             <div className="space-y-2">
               <div>
-                <p className="text-xs font-heading font-semibold text-charcoal-500 uppercase tracking-wide mb-1.5">Required</p>
+                <p className="text-xs font-heading font-semibold text-walnut-600 uppercase tracking-wide mb-1.5">Required</p>
                 <div className="flex flex-wrap gap-2">
                   {activity.materials_required.map((m) => (
                     <span key={m} className="px-2.5 py-1 bg-cream-100 text-walnut-700 rounded-full text-xs font-body">
@@ -123,7 +102,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
               </div>
               {activity.materials_optional.length > 0 && (
                 <div>
-                  <p className="text-xs font-heading font-semibold text-charcoal-500 uppercase tracking-wide mb-1.5 mt-3">Optional extras</p>
+                  <p className="text-xs font-heading font-semibold text-walnut-600 uppercase tracking-wide mb-1.5 mt-3">Optional extras</p>
                   <div className="flex flex-wrap gap-2">
                     {activity.materials_optional.map((m) => (
                       <span key={m} className="px-2.5 py-1 bg-white border border-kraft-300 text-walnut-600 rounded-full text-xs font-body">
@@ -181,10 +160,10 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
           <div className="mb-6 space-y-3">
             {activity.skill_tags.length > 0 && (
               <div>
-                <p className="text-xs font-heading font-semibold text-charcoal-500 uppercase tracking-wide mb-1.5">Skills</p>
+                <p className="text-xs font-heading font-semibold text-walnut-600 uppercase tracking-wide mb-1.5">Skills</p>
                 <div className="flex flex-wrap gap-1.5">
                   {activity.skill_tags.map((t) => (
-                    <span key={t} className="px-2.5 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-body">
+                    <span key={t} className="px-2.5 py-1 bg-cream-100 text-walnut-700 rounded-full text-xs font-body">
                       {t}
                     </span>
                   ))}
@@ -193,10 +172,10 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
             )}
             {activity.scrap_tags.length > 0 && (
               <div>
-                <p className="text-xs font-heading font-semibold text-charcoal-500 uppercase tracking-wide mb-1.5">Scrap types</p>
+                <p className="text-xs font-heading font-semibold text-walnut-600 uppercase tracking-wide mb-1.5">Scrap types</p>
                 <div className="flex flex-wrap gap-1.5">
                   {activity.scrap_tags.map((t) => (
-                    <span key={t} className="px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-xs font-body">
+                    <span key={t} className="px-2.5 py-1 bg-cream-200 text-walnut-700 rounded-full text-xs font-body">
                       {t}
                     </span>
                   ))}

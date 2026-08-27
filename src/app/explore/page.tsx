@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { Search, X } from "lucide-react";
+import { Search, X, SlidersHorizontal } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FilterChip } from "@/components/ui/FilterChip";
 import { ActivityCard } from "@/components/cards/ActivityCard";
@@ -45,6 +45,7 @@ export default function ExplorePage() {
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [category, setCategory] = useState<ActivityCategory | null>(null);
   const [difficulty, setDifficulty] = useState<ActivityDifficulty | null>(null);
   const [ageRange, setAgeRange] = useState<ActivityAgeRange | null>(null);
@@ -78,6 +79,7 @@ export default function ExplorePage() {
   useEffect(() => { fetchActivities(); }, [fetchActivities]);
 
   const hasFilters = !!(category || difficulty || ageRange || timeMax || search);
+  const activeFilterCount = [category, difficulty, ageRange, timeMax].filter(Boolean).length;
 
   function clearFilters() {
     setCategory(null);
@@ -90,26 +92,43 @@ export default function ExplorePage() {
   return (
     <div className="pb-24">
       <PageHeader
-        title="Explore"
+        title="Browse"
         subtitle={`${total} activities to discover`}
       />
 
-      {/* Search */}
-      <div className="px-4 mb-4">
-        <div className="relative">
+      {/* Search + filter control — spec §4.3 */}
+      <div className="px-4 mb-4 flex items-center gap-2">
+        <div className="relative flex-1">
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-walnut-500 pointer-events-none" />
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search activities…"
-            className="w-full pl-9 pr-4 py-2.5 rounded-2xl border border-kraft-400 bg-white text-sm font-body text-charcoal-900 placeholder:text-walnut-400 focus:outline-none focus:ring-2 focus:ring-builder-400"
+            className="w-full pl-9 pr-4 py-2.5 rounded-2xl border border-kraft-400 bg-white text-sm font-body text-charcoal-900 placeholder:text-walnut-500 focus:outline-none focus:ring-2 focus:ring-builder-400"
           />
         </div>
+        <button
+          type="button"
+          onClick={() => setFiltersOpen((o) => !o)}
+          aria-expanded={filtersOpen}
+          className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2.5 font-heading text-sm font-medium transition-colors ${
+            filtersOpen || hasFilters
+              ? "bg-builder-500 text-white"
+              : "border border-kraft-400 bg-white text-walnut-700"
+          }`}
+        >
+          <SlidersHorizontal size={15} aria-hidden />
+          Filters
+          {activeFilterCount > 0 && (
+            <span className="tabular rounded-full bg-white/25 px-1.5 text-xs">{activeFilterCount}</span>
+          )}
+        </button>
       </div>
 
-      {/* Filter rows */}
-      <div className="space-y-2 mb-5">
+      {/* Spec §6: the category rows are a secondary filter, not the first
+          thing under the header — they stay collapsed until asked for. */}
+      <div className={`space-y-2 mb-5 ${filtersOpen ? "" : "hidden"}`}>
         <div className="flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-hide">
           {CATEGORIES.map((c) => (
             <FilterChip
@@ -150,7 +169,7 @@ export default function ExplorePage() {
           {hasFilters && (
             <button
               onClick={clearFilters}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-heading font-medium whitespace-nowrap bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors flex-shrink-0"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-heading font-medium whitespace-nowrap bg-cream-200 text-walnut-700 border border-kraft-300 hover:bg-kraft-300 transition-colors flex-shrink-0"
             >
               <X size={13} />
               Clear
