@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { Hand, Camera, Package, Zap, ArrowRight, Lock } from "lucide-react";
+import { UnlockPill } from "@/components/ui/UnlockPill";
 
 type Method = {
   iconType: "hand" | "camera" | "package" | "zap";
@@ -10,6 +11,8 @@ type Method = {
   color: string;
   badge?: string;
   badgeColor?: string;
+  /** Premium: renders the §4.4 Unlock pill instead of a text badge. */
+  premium?: boolean;
   locked: boolean;
 };
 
@@ -21,7 +24,7 @@ const methods: Method[] = [
     href: "/create/manual",
     color: "bg-builder-500",
     badge: "Most Popular",
-    badgeColor: "bg-green-100 text-green-700",
+    badgeColor: "bg-orange-500/15 text-orange-700",
     locked: false,
   },
   {
@@ -30,8 +33,7 @@ const methods: Method[] = [
     description: "Take a photo and we'll detect your materials",
     href: "/create/scan",
     color: "bg-walnut-700",
-    badge: "Plus",
-    badgeColor: "bg-orange-100 text-orange-600",
+    premium: true,
     locked: true,
   },
   {
@@ -76,6 +78,7 @@ export function CreateMethods() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
               <h3 className="font-heading font-semibold text-base text-charcoal-900">{method.label}</h3>
+              {method.premium && <UnlockPill />}
               {method.badge && (
                 <span className={`text-[10px] font-heading font-semibold px-2 py-0.5 rounded-full ${method.badgeColor}`}>
                   {method.badge}

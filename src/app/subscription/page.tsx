@@ -123,8 +123,8 @@ export default function SubscriptionPage() {
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
-                <p className="text-sm text-red-700 font-body">{error}</p>
+              <div className="bg-coral/10 border border-coral/30 rounded-2xl px-4 py-3">
+                <p className="text-sm text-coral-text font-body">{error}</p>
               </div>
             )}
 
@@ -154,7 +154,7 @@ export default function SubscriptionPage() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-orange-500 to-orange-700 rounded-3xl p-6 text-white relative overflow-hidden">
+            <div className="bg-scraplab-blue rounded-3xl p-6 text-white relative overflow-hidden">
               <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-10 translate-x-10" />
               <div className="relative">
                 <div className="flex items-center gap-2 mb-1">

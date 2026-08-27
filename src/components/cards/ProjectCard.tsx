@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Clock, Trash2, Users, Bookmark } from "lucide-react";
+import { Clock, Trash2, Users, Bookmark, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MetadataChip } from "@/components/ui/MetadataChip";
 import { SupervisionBadge } from "@/components/ui/SupervisionBadge";
@@ -11,6 +11,8 @@ import type { SupervisionLevel } from "@/types";
 export interface ProjectCardProject {
   id: string;
   title: string;
+  /** One-line summary, part of the §4.4 card anatomy. */
+  description?: string;
   emoji: string;
   bgColor: string;
   timeEstimate: string;
@@ -57,7 +59,7 @@ export function ProjectCard({ project, showMatch = false }: ProjectCardProps) {
           {showMatch && project.matchLabel && (
             <span className={cn(
               "absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-heading font-semibold",
-              project.matchLabel === "Great Match" ? "bg-green-100 text-green-700" : "bg-cream-100 text-walnut-700"
+              project.matchLabel === "Great Match" ? "bg-orange-500/15 text-orange-700" : "bg-cream-100 text-walnut-700"
             )}>
               {project.matchLabel}
             </span>
@@ -76,14 +78,25 @@ export function ProjectCard({ project, showMatch = false }: ProjectCardProps) {
             />
           </button>
         </div>
+        {/* Card anatomy per spec §4.4: title, one-line description, the
+            always-visible Reality Indicator chip row, then the Start CTA. */}
         <div className="p-4">
-          <h3 className="font-heading font-semibold text-base text-charcoal-900 mb-2">{project.title}</h3>
-          <div className="flex flex-wrap gap-1.5">
-            <MetadataChip icon={<Clock size={11} />} label={project.timeEstimate} />
+          <h3 className="font-heading font-semibold text-base text-charcoal-900">{project.title}</h3>
+          {project.description ? (
+            <p className="mt-1 line-clamp-2 font-body text-xs leading-relaxed text-walnut-600">
+              {project.description}
+            </p>
+          ) : null}
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <MetadataChip icon={<Clock size={11} />} label={project.timeEstimate} className="tabular" />
             <MetadataChip icon={<Trash2 size={11} />} label={project.cleanupLevel + " mess"} />
-            <MetadataChip icon={<Users size={11} />} label={"Ages " + project.ageRange} />
+            <MetadataChip icon={<Users size={11} />} label={"Ages " + project.ageRange} className="tabular" />
             {project.supervisionLevel && <SupervisionBadge level={project.supervisionLevel} />}
           </div>
+          <span className="mt-3 flex items-center gap-1 font-heading text-sm font-semibold text-builder-500 transition-colors group-hover:text-builder-600">
+            Start
+            <ArrowRight size={13} aria-hidden />
+          </span>
         </div>
       </div>
     </Link>

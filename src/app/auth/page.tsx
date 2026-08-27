@@ -106,7 +106,7 @@ export default function AuthPage() {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full px-4 py-3 bg-cream-50 border border-kraft-300 rounded-2xl text-sm font-body text-charcoal-900 placeholder-walnut-400 focus:outline-none focus:border-builder-500 transition-colors"
+                  className="w-full px-4 py-3 bg-cream-50 border border-kraft-300 rounded-2xl text-sm font-body text-charcoal-900 placeholder-walnut-500 focus:outline-none focus:border-builder-500 transition-colors"
                 />
               </div>
 
@@ -122,7 +122,7 @@ export default function AuthPage() {
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
                   minLength={6}
-                  className="w-full px-4 py-3 bg-cream-50 border border-kraft-300 rounded-2xl text-sm font-body text-charcoal-900 placeholder-walnut-400 focus:outline-none focus:border-builder-500 transition-colors"
+                  className="w-full px-4 py-3 bg-cream-50 border border-kraft-300 rounded-2xl text-sm font-body text-charcoal-900 placeholder-walnut-500 focus:outline-none focus:border-builder-500 transition-colors"
                 />
                 {mode === "signup" && (
                   <p className="text-xs text-walnut-500 mt-1 ml-1">Minimum 6 characters</p>
@@ -130,7 +130,7 @@ export default function AuthPage() {
               </div>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-sm text-red-600">
+                <div className="bg-coral/10 border border-coral/30 rounded-2xl px-4 py-3 text-sm text-coral-text">
                   {error}
                 </div>
               )}

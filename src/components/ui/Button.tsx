@@ -17,7 +17,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             "bg-builder-500 text-white hover:bg-builder-600 shadow-card": variant === "primary",
             "bg-white border-2 border-kraft-500 text-walnut-700 hover:bg-cream-100": variant === "secondary",
             "text-walnut-700 hover:text-walnut-900 underline-offset-2 hover:underline": variant === "tertiary",
-            "bg-red-500 text-white hover:bg-red-600": variant === "danger",
+            "bg-coral text-white hover:bg-coral-text": variant === "danger",
           },
           {
             "px-4 py-2 text-sm": size === "sm",

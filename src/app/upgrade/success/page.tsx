@@ -14,7 +14,7 @@ export default function UpgradeSuccessPage() {
   return (
     <AppShell>
       <div className="max-w-md mx-auto px-4 pt-12 pb-10 flex flex-col items-center text-center">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center mb-6 shadow-card-lg">
+        <div className="w-20 h-20 rounded-full bg-orange-500 flex items-center justify-center mb-6 shadow-card-lg">
           <Sparkles size={36} className="text-white" />
         </div>
 

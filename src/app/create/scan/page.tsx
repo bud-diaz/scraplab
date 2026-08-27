@@ -129,7 +129,7 @@ export default function ScanPage() {
           {detected && (
             <div className="bg-white rounded-3xl shadow-card p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <CheckCircle2 size={18} className="text-green-600" />
+                <CheckCircle2 size={18} className="text-builder-500" />
                 <h3 className="font-heading font-semibold text-sm text-charcoal-900">
                   {detected.length > 0 ? `Found ${detected.length} material${detected.length !== 1 ? 's' : ''}` : 'No materials detected'}
                 </h3>
@@ -150,7 +150,7 @@ export default function ScanPage() {
           )}
 
           {error && (
-            <p className="text-sm text-red-600 font-body text-center">{error}</p>
+            <p className="text-sm text-coral-text font-body text-center">{error}</p>
           )}
 
           {/* Actions */}

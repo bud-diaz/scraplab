@@ -11,8 +11,8 @@ import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/create", label: "Create" },
-  { href: "/library", label: "Library" },
-  { href: "/explore", label: "Explore" },
+  { href: "/library", label: "Build Log" },
+  { href: "/explore", label: "Browse" },
   { href: "/profile", label: "Profile" },
 ];
 

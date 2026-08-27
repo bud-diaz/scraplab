@@ -155,12 +155,12 @@ function KidsSection({ session }: { session: { access_token: string } }) {
                 </div>
                 {confirmDeleteId === child.id ? (
                   <div className="space-y-1">
-                    <p className="text-xs text-red-600 font-body">Remove {child.name ?? 'this kid'}?</p>
+                    <p className="text-xs text-coral-text font-body">Remove {child.name ?? 'this kid'}?</p>
                     <div className="flex gap-1">
                       <button
                         onClick={() => handleDelete(child.id)}
                         disabled={saving}
-                        className="flex-1 text-xs bg-red-500 text-white rounded-xl py-1 font-heading font-semibold"
+                        className="flex-1 text-xs bg-coral text-white rounded-xl py-1 font-heading font-semibold"
                       >Yes</button>
                       <button
                         onClick={() => setConfirmDeleteId(null)}
@@ -177,7 +177,7 @@ function KidsSection({ session }: { session: { access_token: string } }) {
                     ><Check size={13} /></button>
                     <button
                       onClick={() => setConfirmDeleteId(child.id)}
-                      className="flex items-center justify-center bg-red-50 text-red-500 rounded-xl px-2 py-1"
+                      className="flex items-center justify-center bg-coral/10 text-coral-text rounded-xl px-2 py-1"
                     ><Trash2 size={13} /></button>
                     <button
                       onClick={() => setEditingId(null)}
@@ -196,7 +196,7 @@ function KidsSection({ session }: { session: { access_token: string } }) {
                   <p className="font-heading font-semibold text-sm text-charcoal-900">{child.name ?? 'Kid'}</p>
                   <p className="text-xs text-walnut-500">Age {child.age}</p>
                 </div>
-                <Pencil size={11} className="ml-1 text-walnut-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Pencil size={11} className="ml-1 text-walnut-500 opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
             )}
           </div>
@@ -346,7 +346,7 @@ function StaplesSection({ session }: { session: { access_token: string } }) {
               key={item.material_id}
               onClick={() => toggleStaple(item.material_id, true)}
               disabled={toggling === item.material_id}
-              className="flex items-center gap-1.5 bg-builder-500/10 text-builder-600 rounded-xl px-3 py-1.5 text-xs font-heading font-semibold hover:bg-red-50 hover:text-red-600 transition-colors group"
+              className="flex items-center gap-1.5 bg-builder-500/10 text-builder-600 rounded-xl px-3 py-1.5 text-xs font-heading font-semibold hover:bg-coral/10 hover:text-coral-text transition-colors group"
             >
               <span>{item.material?.icon ?? '📦'}</span>
               {item.material?.name}
@@ -452,7 +452,7 @@ export default function ProfilePage() {
           {user ? (
             <button
               onClick={handleSignOut}
-              className="flex items-center gap-2 text-sm text-red-500 hover:text-red-600 font-heading font-medium"
+              className="flex items-center gap-2 text-sm text-coral-text hover:text-coral font-heading font-medium"
             >
               <LogOut size={15} />
               Sign Out

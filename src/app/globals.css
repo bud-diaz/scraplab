@@ -121,6 +121,11 @@
 }
 
 @layer utilities {
+  /* Spec §3: tabular figures for counters, so digits don't shift width as
+     streaks, step counts and usage numbers change. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
   .font-heading {
     font-family: var(--font-heading);
   }

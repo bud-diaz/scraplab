@@ -5,28 +5,7 @@ import { cn } from "@/lib/utils";
 import { MetadataChip } from "@/components/ui/MetadataChip";
 import { SupervisionBadge } from "@/components/ui/SupervisionBadge";
 import type { Activity, SupervisionLevel } from "@/types";
-
-const CATEGORY_COLORS: Record<string, string> = {
-  engineering: "bg-blue-100",
-  science: "bg-green-100",
-  art: "bg-pink-100",
-  storytelling: "bg-purple-100",
-  "pretend-play": "bg-yellow-100",
-  cooperative: "bg-orange-100",
-  puzzle: "bg-cyan-100",
-  seasonal: "bg-red-100",
-};
-
-const CATEGORY_EMOJI: Record<string, string> = {
-  engineering: "🔧",
-  science: "🔬",
-  art: "🎨",
-  storytelling: "📖",
-  "pretend-play": "🎭",
-  cooperative: "🤝",
-  puzzle: "🧩",
-  seasonal: "🍂",
-};
+import { CATEGORY_TILE, categoryEmoji } from "@/lib/categoryTheme";
 
 // Neutral Ink/Slate scale, not green/yellow/red — difficulty must never be
 // mistaken for the Leaf/Amber/Coral supervision-safety coding on the same card.
@@ -43,8 +22,8 @@ interface ActivityCardProps {
 }
 
 export function ActivityCard({ activity, matchLabel }: ActivityCardProps) {
-  const bg = CATEGORY_COLORS[activity.category] ?? "bg-cream-100";
-  const emoji = CATEGORY_EMOJI[activity.category] ?? "✨";
+  const bg = CATEGORY_TILE;
+  const emoji = categoryEmoji(activity.category);
   const diffColor = DIFFICULTY_COLOR[activity.difficulty] ?? "bg-cream-100 text-walnut-700";
 
   return (
@@ -55,7 +34,7 @@ export function ActivityCard({ activity, matchLabel }: ActivityCardProps) {
           {matchLabel ? (
             <span className={cn(
               "absolute top-3 right-3 px-2.5 py-0.5 rounded-full text-xs font-heading font-semibold",
-              matchLabel === "Perfect Match" ? "bg-green-100 text-green-700" : "bg-cream-100 text-walnut-700"
+              matchLabel === "Perfect Match" ? "bg-orange-500/15 text-orange-700" : "bg-cream-100 text-walnut-700"
             )}>
               {matchLabel}
             </span>
@@ -78,7 +57,7 @@ export function ActivityCard({ activity, matchLabel }: ActivityCardProps) {
             {activity.title}
           </h3>
           {activity.one_liner && (
-            <p className="text-xs text-charcoal-600 font-body line-clamp-2 leading-relaxed">
+            <p className="text-xs text-walnut-600 font-body line-clamp-2 leading-relaxed">
               {activity.one_liner}
             </p>
           )}
