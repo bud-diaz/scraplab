@@ -128,15 +128,23 @@ filled out. None of them were in scope for the Capacitor/RevenueCat build
 work already on this branch; flagging them now so they don't surface for
 the first time during review.
 
-1. **In-app account deletion is not implemented yet.** Apple requires
-   (Guideline 5.1.1(v)) that any app supporting account creation also let
-   users initiate deletion of their account from inside the app, not just
-   by emailing support. This codebase has no `DELETE`-account route or UI
-   today (verified: no delete-account endpoint under `src/app/api/`). The
-   privacy policy drafted at `src/app/privacy/page.tsx` currently describes
-   deletion as an email request, which is honest today but won't satisfy
-   this guideline for the iOS submission — a real in-app "Delete Account"
-   flow needs to ship before submitting.
+1. **In-app account deletion — done.** `src/app/api/me/delete-account/route.ts`
+   (a `DELETE` handler, gated by `requireAuth`) cancels any active Stripe
+   subscription for the user and then calls
+   `createServiceClient().auth.admin.deleteUser(user.id)`, which cascades
+   through every user-owned table via the existing FK constraints
+   (`child_profiles`, `saved_projects`, `build_history`,
+   `household_inventory` all `references profiles(id) on delete cascade`,
+   and `profiles(id) references auth.users(id) on delete cascade`). The UI
+   is a "Delete Account" control in Profile → Danger Zone
+   (`src/app/profile/page.tsx`), with an inline confirm step that warns the
+   deletion is permanent and, for a Plus subscriber, tells them whether
+   their subscription is cancelled automatically (Stripe/web) or needs to
+   be cancelled separately via their Apple ID settings (Apple/RevenueCat —
+   there is no API for a developer to force-cancel a StoreKit subscription,
+   so this is expected, not a gap). This has not been exercised against a
+   real Supabase project or a live Stripe test-mode subscription — do one
+   manual QA pass on both paths before relying on it for submission.
 2. **Privacy Policy URL**: point App Store Connect's privacy policy field
    at `https://<your-production-domain>/privacy` once the production domain
    in `capacitor.config.ts` is finalized and deployed — the page itself

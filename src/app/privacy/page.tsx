@@ -65,7 +65,7 @@ export default function PrivacyPolicyPage() {
 
           <Section title="Your choices">
             <p>You can review, edit, or remove kid profiles and household materials at any time from your Profile. You can cancel your subscription at any time — through the Stripe billing portal on the web, or through your Apple ID subscription settings on iOS.</p>
-            <p>To request a copy of your data, or to delete your account and associated data, contact us at the email below. We will act on deletion requests within a reasonable time, except where we need to retain limited information as required by law (for example, payment records).</p>
+            <p>You can permanently delete your account at any time from Profile → Delete Account. This immediately removes your kid profiles, saved projects, and build history, and cancels an active web (Stripe) subscription automatically. Deleting your account does not cancel an Apple subscription — cancel that separately from your Apple ID subscription settings, or you&rsquo;ll continue to be billed by Apple. If you&rsquo;d rather we delete your account for you, or you want a copy of your data first, contact us at the email below. We will act on any request within a reasonable time, except where we need to retain limited information as required by law (for example, payment records).</p>
           </Section>
 
           <Section title="Data retention">
