@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>ScrapLab</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #FFF8ED;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  .wrap {
+    text-align: center;
+    padding: 24px;
+  }
+  .spinner {
+    width: 36px;
+    height: 36px;
+    margin: 0 auto 16px;
+    border: 3px solid #E8DFCF;
+    border-top-color: #F97316;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  p { color: #6B5B4A; font-size: 14px; margin: 4px 0; }
+  button {
+    margin-top: 16px;
+    padding: 10px 20px;
+    border-radius: 999px;
+    border: none;
+    background: #F97316;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="spinner"></div>
+    <p id="status">Connecting to ScrapLab…</p>
+    <button id="retry" style="display:none" onclick="window.location.href='scraplab-retry://reload'">Retry</button>
+  </div>
+  <script>
+    // If this local fallback page is ever visible for more than a couple of
+    // seconds, the app failed to reach the remote server.url — surface a
+    // manual retry rather than leaving a spinner running forever. The native
+    // WKNavigationDelegate is the primary mechanism that lands the app back
+    // here on a real load failure (see ios/App/App/AppDelegate.swift), this
+    // is just the last-resort UI for that state.
+    setTimeout(function () {
+      document.getElementById('status').textContent = 'Could not reach ScrapLab.';
+      document.getElementById('retry').style.display = 'inline-block';
+    }, 6000);
+  </script>
+</body>
+</html>

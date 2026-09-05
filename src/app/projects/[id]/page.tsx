@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { MaterialsChecklist } from "@/components/ui/MaterialsChecklist";
+import { ShareProjectButton } from "@/components/ui/ShareProjectButton";
 import { MetadataChip } from "@/components/ui/MetadataChip";
 import { SupervisionBadge } from "@/components/ui/SupervisionBadge";
 import { Button } from "@/components/ui/Button";
@@ -72,6 +73,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             <Link href="/create/results" className="absolute top-4 left-4 w-9 h-9 bg-white/80 rounded-2xl flex items-center justify-center">
               <ArrowLeft size={16} className="text-charcoal-900" />
             </Link>
+            <ShareProjectButton
+              title={mockProject.title}
+              text={`Check out this build on ScrapLab: ${mockProject.title}`}
+              className="absolute top-4 right-4 w-9 h-9 bg-white/80 rounded-2xl flex items-center justify-center"
+            />
             <span className="text-7xl">{mockProject.emoji}</span>
           </div>
           <div className="px-4 py-5">
@@ -139,6 +145,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <Link href="/create/results" className="absolute top-4 left-4 w-9 h-9 bg-white/80 rounded-2xl flex items-center justify-center">
             <ArrowLeft size={16} className="text-charcoal-900" />
           </Link>
+          <ShareProjectButton
+            title={display.title}
+            text={`Check out this build on ScrapLab: ${display.title}`}
+            className="absolute top-4 right-4 w-9 h-9 bg-white/80 rounded-2xl flex items-center justify-center"
+          />
           <span className="text-7xl">{display.emoji}</span>
         </div>
         <div className="px-4 py-5">
