@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:api": "vitest run tests/api",
+    "test:integration": "vitest run tests/integration",
     "cap:sync": "cap sync ios",
     "cap:sync:dev": "CAP_ENV=dev cap sync ios",
     "cap:open": "cap open ios"
@@ -43,6 +46,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^3.2.7"
   }
 }
