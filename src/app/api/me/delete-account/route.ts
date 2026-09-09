@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/db/auth'
 import { createServiceClient } from '@/lib/db/client'
 import { getStripe } from '@/lib/stripe'
+import type Stripe from 'stripe'
+
+// Subscriptions in these statuses are already resolved and billing has
+// stopped — nothing to cancel. Every other status (active, trialing,
+// past_due, incomplete, unpaid, paused) still bills the customer and must
+// be cancelled so deleting the account doesn't leave it being charged.
+const TERMINAL_STATUSES = new Set<Stripe.Subscription.Status>(['canceled', 'incomplete_expired'])
 
 // Deletes the user's ScrapLab account and all associated data. Every
 // user-owned table (child_profiles, saved_projects, build_history,
@@ -27,11 +34,21 @@ export async function DELETE(request: NextRequest) {
   if (profile?.stripe_customer_id) {
     try {
       const stripe = getStripe()
-      const subs = await stripe.subscriptions.list({
-        customer: profile.stripe_customer_id,
-        status: 'active',
-      })
-      await Promise.all(subs.data.map(s => stripe.subscriptions.cancel(s.id)))
+      let startingAfter: string | undefined
+      const nonterminal: Stripe.Subscription[] = []
+
+      do {
+        const page = await stripe.subscriptions.list({
+          customer: profile.stripe_customer_id,
+          status: 'all',
+          limit: 100,
+          ...(startingAfter ? { starting_after: startingAfter } : {}),
+        })
+        nonterminal.push(...page.data.filter((s) => !TERMINAL_STATUSES.has(s.status)))
+        startingAfter = page.has_more ? page.data[page.data.length - 1]?.id : undefined
+      } while (startingAfter)
+
+      await Promise.all(nonterminal.map((s) => stripe.subscriptions.cancel(s.id)))
     } catch (err) {
       console.error('delete-account: failed to cancel Stripe subscription', err)
     }
