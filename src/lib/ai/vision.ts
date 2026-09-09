@@ -19,6 +19,8 @@ const VISION_SCHEMA = {
   required: ['detected'],
 }
 
+const REQUEST_TIMEOUT_MS = 20_000
+
 export async function detectMaterialsFromImage(
   base64Image: string,
   mimeType: string,
@@ -33,6 +35,11 @@ export async function detectMaterialsFromImage(
     const ai = new GoogleGenAI({ apiKey })
     const response = await ai.models.generateContent({
       model: 'gemini-2.0-flash',
+      config: {
+        abortSignal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        responseMimeType: 'application/json',
+        responseSchema: VISION_SCHEMA,
+      },
       contents: [
         {
           role: 'user',
@@ -49,10 +56,6 @@ Only include materials from the list above that you can clearly see. Assign a co
           ],
         },
       ],
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: VISION_SCHEMA,
-      },
     })
 
     const parsed: { detected?: Array<{ name: string; confidence: number }> } =
