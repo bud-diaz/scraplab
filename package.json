@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:api": "vitest run tests/api",
     "test:integration": "vitest run tests/integration",
+    "test:e2e": "playwright test",
     "cap:sync": "cap sync ios",
     "cap:sync:dev": "CAP_ENV=dev cap sync ios",
     "cap:open": "cap open ios"
@@ -39,6 +40,7 @@
   "devDependencies": {
     "@capacitor/cli": "^8.5.1",
     "@capacitor/ios": "^8.5.1",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",

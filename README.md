@@ -21,6 +21,7 @@ The product is **inventory-first**: it starts from the junk drawer, not from a c
 - [Data Model](#data-model)
 - [Tech Stack](#tech-stack)
 - [Getting Started](#getting-started)
+- [Testing](#testing)
 - [Environment Variables](#environment-variables)
 - [Project Structure](#project-structure)
 - [Roadmap](#roadmap)
@@ -130,7 +131,7 @@ Free is designed to be genuinely useful on its own — the goal is habit formati
 ScrapLab is a single Next.js (App Router) application combining the web UI and its API in one deployable unit.
 
 - **UI layer** (`src/app/**/page.tsx`) — server/client React components for each screen (home, create flow, build flow, explore, library, profile, subscription).
-- **API layer** (`src/app/api/**/route.ts`) — REST-style route handlers for materials, activities, projects, recommendations, household inventory, child profiles, saved projects, build history, material scanning, and Stripe billing/webhooks.
+- **API layer** (`src/app/api/**/route.ts`) — REST-style route handlers for materials, activities, projects, recommendations, household inventory, child profiles, saved projects, build history, material scanning, and Stripe billing/webhooks. `GET /api/projects` and `POST /api/recommendations` predate the activity-based `GET /api/activities` / `POST /api/activity-recommendations` pair and have no in-repo frontend caller today — they're retained rather than deleted since an out-of-repo consumer or deployment isn't ruled out; `tests/api/route-inventory.test.ts` documents which routes have a known in-repo caller and which don't.
 - **Domain logic** (`src/lib`) — framework-agnostic modules: `recommendations` (matching engine), `access` (plan/limit enforcement), `safety` (safety rule checks), `ai` (vision-based material detection and AI-assisted suggestions), `db` (Supabase client + auth helpers).
 - **Persistence** — Supabase (Postgres + Storage), with SQL migrations in `supabase/migrations` and seed data in `supabase/seed.sql`.
 - **Design system** — shared UI primitives in `src/components/ui` (badges, chips, cards, progress steppers) and layout shells in `src/components/layout`, following the tone/visual guidelines in `SCRAPLAB_UI_DESIGN_SYSTEM.md` and `SCRAPLAB_BRANDING_SYSTEM.md`.
@@ -180,6 +181,23 @@ npm run lint     # lint the codebase
 ```
 
 Database schema and seed data live under `supabase/` — apply `supabase/migrations/*.sql` (in order) to a Supabase project, then optionally run `supabase/seed.sql` for sample data.
+
+## Testing
+
+```bash
+npm test              # everything below except e2e
+npm run test:api      # API route handler tests (tests/api) — mocked Supabase/Stripe/RevenueCat/Gemini
+npm run test:integration  # asserts required invariants exist in supabase/migrations/*.sql
+npm run test:e2e      # Playwright smoke suite (tests/e2e) — see below
+```
+
+- **`tests/api`** — Vitest, one file per route/module. Route handlers are invoked directly (transpiled, not over HTTP) with `@/lib/db/client`, `@/lib/stripe`, etc. mocked; no real network or `.env.local` is loaded (`tests/api/helpers.ts` strips real credentials from `process.env` before every test).
+- **`tests/api/route-inventory.test.ts`** — an AST-derived guard: scans every `src/app/api/**/route.ts` export and every frontend `fetch('/api/...')` call site, and fails if a frontend call doesn't resolve to a real path/method. Add a route or a fetch call and this catches a mismatch automatically.
+- **`tests/integration/access-policy.test.ts`** — reads the actual SQL in `supabase/migrations/*.sql` and asserts specific security/correctness invariants are present (e.g. billing columns are revoked from direct client writes, build-progress transitions are guarded). It does not execute SQL — run the same file's statements against a disposable database to verify behavior, not just presence.
+- **`tests/ui`** — component tests via `@testing-library/react` + jsdom, opted in per-file with a `// @vitest-environment jsdom` docblock (the default Vitest environment stays `node` for API tests).
+- **`tests/e2e`** — Playwright, runs against a real server (`npm run build && npm run start` by default, or `PLAYWRIGHT_BASE_URL` pointed at a staging deployment). The guest-only specs run unconditionally; specs requiring a signed-in user (`TEST_USER_EMAIL`/`TEST_USER_PASSWORD`, plus `TEST_PROJECT_ID` for the build-lifecycle resume check) skip themselves when those env vars aren't set. **Never point this at production** — the delete-account/billing specs are written to avoid live purchases, but a real signed-in test run should always use a disposable staging account.
+
+CI (`.github/workflows/ci.yml`) runs lint/typecheck/unit/build on every push against placeholder env vars. The `e2e` job only runs when a `STAGING_URL` repository variable is configured — placeholder Supabase credentials can't serve real activity/recommendation data, so it's a no-op rather than a false-green check until real staging secrets are wired up.
 
 ## Environment Variables
 

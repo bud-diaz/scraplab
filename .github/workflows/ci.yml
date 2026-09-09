@@ -39,3 +39,32 @@ jobs:
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder
           STRIPE_PLUS_PRICE_ID: price_placeholder
           STRIPE_WEBHOOK_SECRET: whsec_placeholder
+
+  # Runs the Playwright smoke suite against a real staging deployment.
+  # Placeholder Supabase credentials (used by the `check` job's build step
+  # above) can't serve real activities/recommendation data, so this job
+  # only runs once STAGING_URL is configured as a repo secret — it's a
+  # no-op otherwise rather than a false-green check against fake data.
+  # TEST_USER_EMAIL/TEST_USER_PASSWORD are optional: without them the
+  # authenticated specs skip themselves, per each spec's own test.skip().
+  e2e:
+    runs-on: ubuntu-latest
+    if: ${{ vars.STAGING_URL != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      - name: E2E smoke tests against staging
+        run: npm run test:e2e
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ vars.STAGING_URL }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          TEST_PROJECT_ID: ${{ vars.TEST_PROJECT_ID }}
