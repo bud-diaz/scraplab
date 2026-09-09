@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/db/auth'
 import { createServiceClient } from '@/lib/db/client'
+import { reconcileEntitlement } from '@/lib/billing/entitlements'
 
 // Called right after a successful client-side RevenueCat purchase, so the
 // UI reflects the new plan immediately instead of waiting on the async
@@ -29,15 +30,16 @@ export async function POST(request: NextRequest) {
   const hasEntitlement = 'plus' in (data.subscriber?.entitlements ?? {})
 
   const db = createServiceClient()
-  const plan = hasEntitlement && isPlus ? 'plus' : 'free'
-  const { error: updateError } = await db
-    .from('profiles')
-    .update({ plan, plan_source: 'revenuecat', revenuecat_app_user_id: user.id })
-    .eq('id', user.id)
 
-  if (updateError) {
+  let plan: 'free' | 'plus'
+  try {
+    const result = await reconcileEntitlement(db, user.id, 'revenuecat', hasEntitlement && isPlus)
+    plan = result.plan
+  } catch {
     return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
   }
+
+  await db.from('profiles').update({ revenuecat_app_user_id: user.id }).eq('id', user.id)
 
   return NextResponse.json({ plan })
 }

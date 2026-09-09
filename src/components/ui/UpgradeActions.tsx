@@ -76,12 +76,21 @@ export function UpgradeActions() {
     try {
       const granted = await purchasePlus(nativePackage)
       if (granted) {
-        await fetch('/api/me/sync-revenuecat', {
+        const res = await fetch('/api/me/sync-revenuecat', {
           method: 'POST',
           headers: { Authorization: `Bearer ${session.access_token}` },
         })
-        setPlan('plus')
-        Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {})
+        if (res.ok) {
+          const data = await res.json()
+          setPlan(data.plan ?? 'free')
+          if (data.plan === 'plus') {
+            Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {})
+          } else {
+            setError('Purchase completed, but verification is still pending. Pull to refresh in a moment.')
+          }
+        } else {
+          setError('Purchase completed, but we could not verify it yet. Try "Manage subscription" or restart the app in a moment.')
+        }
       } else {
         setError('Purchase did not complete. Please try again.')
       }
