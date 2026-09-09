@@ -25,7 +25,7 @@ const plusFeatures = [
 ]
 
 export default function SubscriptionPage() {
-  const { user, session } = useAuth()
+  const { user, session, loading: authLoading } = useAuth()
   const router = useRouter()
   const [plan, setPlan] = useState<'free' | 'plus' | null>(null)
   const [pageLoading, setPageLoading] = useState(true)
@@ -39,6 +39,7 @@ export default function SubscriptionPage() {
   const [restoreLoading, setRestoreLoading] = useState(false)
 
   useEffect(() => {
+    if (authLoading) return
     if (!user || !session) {
       router.replace('/auth')
       return
@@ -58,7 +59,7 @@ export default function SubscriptionPage() {
     // NativeBootstrap, which dispatches this event.
     window.addEventListener('scraplab:refresh-plan', refresh)
     return () => window.removeEventListener('scraplab:refresh-plan', refresh)
-  }, [user, session, router])
+  }, [user, session, router, authLoading])
 
   useEffect(() => {
     if (!native) return

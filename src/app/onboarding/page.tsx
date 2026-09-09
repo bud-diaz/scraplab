@@ -36,15 +36,17 @@ const AGE_BANDS = [
 export default function OnboardingPage() {
   const [selected, setSelected] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const { session } = useAuth()
   const router = useRouter()
 
   const handleContinue = async () => {
     if (saving) return
     setSaving(true)
+    setError(null)
     try {
       if (session) {
-        await fetch('/api/child-profiles', {
+        const res = await fetch('/api/child-profiles', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -52,9 +54,16 @@ export default function OnboardingPage() {
           },
           body: JSON.stringify({ age: AGE_BANDS[selected].age }),
         })
+        if (!res.ok) {
+          setError("Couldn't save that — try again.")
+          setSaving(false)
+          return
+        }
       }
-    } finally {
       router.replace('/')
+    } catch {
+      setError('Network error — try again.')
+      setSaving(false)
     }
   }
 
@@ -106,6 +115,9 @@ export default function OnboardingPage() {
         </p>
 
         <div className="mt-auto">
+          {error && (
+            <p className="text-center text-sm text-coral-text font-body mb-3">{error}</p>
+          )}
           <Button
             variant="primary"
             size="lg"

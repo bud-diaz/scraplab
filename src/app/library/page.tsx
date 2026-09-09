@@ -46,19 +46,24 @@ export default function LibraryPage() {
   // null = not yet fetched; [] = fetched but empty
   const [savedProjects, setSavedProjects] = useState<SavedProject[] | null>(null);
   const [historyProjects, setHistoryProjects] = useState<(ApiProject & { status: string })[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [retryTick, setRetryTick] = useState(0);
 
   // Derive loading: authenticated but data not yet arrived
-  const loading = !!session && (savedProjects === null || historyProjects === null);
+  const loading = !!session && !loadError && (savedProjects === null || historyProjects === null);
 
   useEffect(() => {
     if (!session) return;
+    let cancelled = false;
     const headers = { Authorization: `Bearer ${session.access_token}` };
 
     Promise.all([
-      fetch('/api/saved-projects', { headers }).then(r => r.ok ? r.json() : { savedProjects: [] }),
-      fetch('/api/build-history', { headers }).then(r => r.ok ? r.json() : { buildHistory: [] }),
+      fetch('/api/saved-projects', { headers }).then(r => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))),
+      fetch('/api/build-history', { headers }).then(r => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))),
     ])
       .then(([savedData, historyData]) => {
+        if (cancelled) return;
+        setLoadError(false);
         setSavedProjects(
           (savedData.savedProjects as SavedProjectRow[])
             .filter(r => r.project)
@@ -71,10 +76,13 @@ export default function LibraryPage() {
         );
       })
       .catch(() => {
-        setSavedProjects([]);
-        setHistoryProjects([]);
+        // A backend/network failure must not read as "you have nothing
+        // saved" — that's real data loss, not an empty library.
+        if (!cancelled) setLoadError(true);
       });
-  }, [session]);
+
+    return () => { cancelled = true; };
+  }, [session, retryTick]);
 
   const savedDisplay = (savedProjects ?? []).map(p => ({ savedId: p.savedId, display: toDisplayProject(p.project) }));
   const historyDisplay = (historyProjects ?? []).map(p => toDisplayProject(p));
@@ -109,6 +117,20 @@ export default function LibraryPage() {
         </div>
 
         <div className="px-4 pb-8">
+          {loadError ? (
+            <div className="bg-coral/10 border border-coral/30 rounded-2xl px-4 py-6 text-center">
+              <p className="text-sm text-coral-text font-body mb-3">
+                Couldn&apos;t load your library. Check your connection and try again.
+              </p>
+              <button
+                onClick={() => setRetryTick(t => t + 1)}
+                className="text-sm font-heading font-semibold text-builder-600 underline"
+              >
+                Retry
+              </button>
+            </div>
+          ) : (
+          <>
           {activeTab === "Saved" && (
             loading ? (
               <div className="grid grid-cols-2 gap-3">
@@ -191,6 +213,8 @@ export default function LibraryPage() {
               ctaLabel="Explore Challenges"
               ctaHref="/challenges"
             />
+          )}
+          </>
           )}
         </div>
       </div>

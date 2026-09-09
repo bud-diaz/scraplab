@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Search, X, SlidersHorizontal } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FilterChip } from "@/components/ui/FilterChip";
@@ -57,26 +57,34 @@ export default function ExplorePage() {
     return () => clearTimeout(t);
   }, [search]);
 
-  const fetchActivities = useCallback(async () => {
-    setLoading(true);
-    const params = new URLSearchParams({ limit: "100" });
-    if (category) params.set("category", category);
-    if (difficulty) params.set("difficulty", difficulty);
-    if (ageRange) params.set("age_range", ageRange);
-    if (timeMax) params.set("time_max", String(timeMax));
-    if (debouncedSearch) params.set("search", debouncedSearch);
+  useEffect(() => {
+    let cancelled = false;
 
-    try {
-      const res = await fetch(`/api/activities?${params}`);
-      const json = await res.json();
-      setActivities(json.activities ?? []);
-      setTotal(json.total ?? 0);
-    } finally {
-      setLoading(false);
+    async function run() {
+      setLoading(true);
+      const params = new URLSearchParams({ limit: "100" });
+      if (category) params.set("category", category);
+      if (difficulty) params.set("difficulty", difficulty);
+      if (ageRange) params.set("age_range", ageRange);
+      if (timeMax) params.set("time_max", String(timeMax));
+      if (debouncedSearch) params.set("search", debouncedSearch);
+
+      try {
+        const res = await fetch(`/api/activities?${params}`);
+        const json = await res.json();
+        if (cancelled) return;
+        setActivities(json.activities ?? []);
+        setTotal(json.total ?? 0);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
-  }, [category, difficulty, ageRange, timeMax, debouncedSearch]);
 
-  useEffect(() => { fetchActivities(); }, [fetchActivities]);
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [category, difficulty, ageRange, timeMax, debouncedSearch]);
 
   const hasFilters = !!(category || difficulty || ageRange || timeMax || search);
   const activeFilterCount = [category, difficulty, ageRange, timeMax].filter(Boolean).length;

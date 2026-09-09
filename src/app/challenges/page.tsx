@@ -18,8 +18,8 @@ export default function ChallengesPage() {
 
         <div className="px-4 pb-8">
           <UpgradeCard
-            feature="Unlock All Challenges"
-            description="Get Mystery Builds, seasonal events, and Kid Chooses Chaos mode with ScrapLab Plus."
+            feature="Unlock Mystery Builds"
+            description="Get Mystery Builds and more challenge modes as they launch, with ScrapLab Plus."
           />
         </div>
       </div>
