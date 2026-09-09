@@ -7,6 +7,7 @@ import { SupervisionBadge } from "@/components/ui/SupervisionBadge";
 import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 import type { SupervisionLevel } from "@/types";
+import { isUuid } from "@/lib/validation/identifiers";
 
 export interface ProjectCardProject {
   id: string;
@@ -25,27 +26,79 @@ export interface ProjectCardProject {
 interface ProjectCardProps {
   project: ProjectCardProject;
   showMatch?: boolean;
+  /** Pass when the caller already knows this project is saved (e.g. the
+   * Library "Saved" tab), along with the saved_projects row id needed to
+   * unsave it. */
+  initialSaved?: boolean;
+  savedProjectId?: string;
+  /** Notified after a successful save/unsave so a parent list (e.g.
+   * Library) can update its own state without a full refetch. */
+  onSaveChange?: (saved: boolean, savedProjectId: string | null) => void;
 }
 
-export function ProjectCard({ project, showMatch = false }: ProjectCardProps) {
+export function ProjectCard({ project, showMatch = false, initialSaved = false, savedProjectId, onSaveChange }: ProjectCardProps) {
   const { session } = useAuth();
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(initialSaved);
+  const [savedId, setSavedId] = useState<string | null>(savedProjectId ?? null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Mock/offline sample projects use slug-like ids that were never
+  // persisted as a real projects.id UUID — bookmarking them would always
+  // 400. Disable rather than let the click silently no-op.
+  const bookmarkable = isUuid(project.id);
 
   const handleBookmark = async (e: React.MouseEvent) => {
     e.preventDefault();
-    if (!session || saving || saved) return;
+    if (!session || saving || !bookmarkable) return;
     setSaving(true);
+    setError(null);
     try {
-      const res = await fetch('/api/saved-projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ projectId: project.id }),
-      });
-      if (res.ok || res.status === 409) setSaved(true);
+      if (saved) {
+        if (!savedId) {
+          setError("Can't unsave this right now");
+          return;
+        }
+        const res = await fetch(`/api/saved-projects/${savedId}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (res.ok) {
+          setSaved(false);
+          setSavedId(null);
+          onSaveChange?.(false, null);
+        } else if (res.status === 401) {
+          setError("Sign in to manage saved projects");
+        } else {
+          setError("Could not remove — try again");
+        }
+      } else {
+        const res = await fetch("/api/saved-projects", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ projectId: project.id }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const newSavedId: string | null = data.savedProject?.id ?? null;
+          setSaved(true);
+          setSavedId(newSavedId);
+          onSaveChange?.(true, newSavedId);
+        } else if (res.status === 409) {
+          setSaved(true);
+        } else if (res.status === 429) {
+          setError("Save limit reached — upgrade to Plus for unlimited saves");
+        } else if (res.status === 401) {
+          setError("Sign in to save projects");
+        } else {
+          setError("Could not save — try again");
+        }
+      }
+    } catch {
+      setError("Network error — try again");
     } finally {
       setSaving(false);
     }
@@ -66,17 +119,26 @@ export function ProjectCard({ project, showMatch = false }: ProjectCardProps) {
           )}
           <button
             onClick={handleBookmark}
-            aria-label={saved ? "Saved" : "Save project"}
+            disabled={!bookmarkable || saving}
+            aria-label={saved ? "Remove from saved" : "Save project"}
+            title={error ?? (!bookmarkable ? "This sample project can't be saved yet" : undefined)}
             className={cn(
               "absolute top-3 left-3 w-7 h-7 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors",
-              !session && "opacity-40 cursor-default"
+              (!session || !bookmarkable) && "opacity-40 cursor-default"
             )}
           >
             <Bookmark
               size={13}
-              className={cn(saved ? "text-builder-500 fill-builder-500" : "text-walnut-700")}
+              className={cn(
+                error ? "text-coral" : saved ? "text-builder-500 fill-builder-500" : "text-walnut-700"
+              )}
             />
           </button>
+          {error && (
+            <span role="status" className="sr-only">
+              {error}
+            </span>
+          )}
         </div>
         {/* Card anatomy per spec §4.4: title, one-line description, the
             always-visible Reality Indicator chip row, then the Start CTA. */}

@@ -12,14 +12,19 @@ export async function DELETE(
   const { id } = await params
   const db = createServiceClient()
 
-  const { error: dbError } = await db
+  const { data, error: dbError } = await db
     .from('saved_projects')
     .delete()
     .eq('id', id)
     .eq('user_id', user.id)
+    .select('id')
 
   if (dbError) {
     return NextResponse.json({ error: dbError.message }, { status: 500 })
+  }
+
+  if (!data || data.length === 0) {
+    return NextResponse.json({ error: 'Saved project not found' }, { status: 404 })
   }
 
   return new NextResponse(null, { status: 204 })

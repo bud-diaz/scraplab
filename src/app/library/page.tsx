@@ -28,6 +28,11 @@ interface SavedProjectRow {
   project: ApiProject;
 }
 
+interface SavedProject {
+  savedId: string;
+  project: ApiProject;
+}
+
 interface BuildHistoryRow {
   id: string;
   completion_status: string;
@@ -39,7 +44,7 @@ export default function LibraryPage() {
   const { session } = useAuth();
 
   // null = not yet fetched; [] = fetched but empty
-  const [savedProjects, setSavedProjects] = useState<ApiProject[] | null>(null);
+  const [savedProjects, setSavedProjects] = useState<SavedProject[] | null>(null);
   const [historyProjects, setHistoryProjects] = useState<(ApiProject & { status: string })[] | null>(null);
 
   // Derive loading: authenticated but data not yet arrived
@@ -55,7 +60,9 @@ export default function LibraryPage() {
     ])
       .then(([savedData, historyData]) => {
         setSavedProjects(
-          (savedData.savedProjects as SavedProjectRow[]).map(r => r.project).filter(Boolean)
+          (savedData.savedProjects as SavedProjectRow[])
+            .filter(r => r.project)
+            .map(r => ({ savedId: r.id, project: r.project }))
         );
         setHistoryProjects(
           (historyData.buildHistory as BuildHistoryRow[])
@@ -69,8 +76,12 @@ export default function LibraryPage() {
       });
   }, [session]);
 
-  const savedDisplay = (savedProjects ?? []).map(p => toDisplayProject(p));
+  const savedDisplay = (savedProjects ?? []).map(p => ({ savedId: p.savedId, display: toDisplayProject(p.project) }));
   const historyDisplay = (historyProjects ?? []).map(p => toDisplayProject(p));
+
+  const handleUnsave = (savedId: string) => {
+    setSavedProjects(prev => (prev ?? []).filter(p => p.savedId !== savedId));
+  };
 
   return (
     <AppShell>
@@ -107,10 +118,15 @@ export default function LibraryPage() {
               </div>
             ) : savedDisplay.length > 0 ? (
               <div className="grid grid-cols-2 gap-3">
-                {savedDisplay.map(project => (
+                {savedDisplay.map(({ savedId, display }) => (
                   <ProjectCard
-                    key={project.id}
-                    project={{ ...project, supervisionLevel: project.supervisionLevelRaw }}
+                    key={savedId}
+                    project={{ ...display, supervisionLevel: display.supervisionLevelRaw }}
+                    initialSaved
+                    savedProjectId={savedId}
+                    onSaveChange={(saved) => {
+                      if (!saved) handleUnsave(savedId);
+                    }}
                   />
                 ))}
               </div>
