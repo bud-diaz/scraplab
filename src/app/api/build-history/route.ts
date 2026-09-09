@@ -43,6 +43,20 @@ export async function POST(request: NextRequest) {
   }
 
   const db = createServiceClient()
+
+  if (parsed.data.childProfileId) {
+    const { data: childProfile } = await db
+      .from('child_profiles')
+      .select('id')
+      .eq('id', parsed.data.childProfileId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (!childProfile) {
+      return NextResponse.json({ error: 'Child profile not found' }, { status: 403 })
+    }
+  }
+
   const { data, error: dbError } = await db
     .from('build_history')
     .insert({

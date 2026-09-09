@@ -1,6 +1,12 @@
 -- ============================================================
 -- ScrapLab — one-shot database setup
 -- Run this entire file in Supabase → SQL Editor
+--
+-- NOTE: this predates migrations/004_stripe.sql onward (Stripe billing
+-- columns, activities, activity_materials, iOS IAP columns, and
+-- 008_endpoint_access_hardening.sql's ownership/limit hardening are not
+-- included below). After running this file, apply supabase/migrations/
+-- 004 through the latest numbered migration to reach current schema.
 -- ============================================================
 
 -- Enable UUID generation
@@ -22,9 +28,11 @@ drop policy if exists "Users can read own profile" on profiles;
 create policy "Users can read own profile"
   on profiles for select using (auth.uid() = id);
 
+-- No client-writable UPDATE policy on profiles: plan/billing columns are
+-- written exclusively by server routes using the service-role client
+-- (service_role bypasses RLS and grants). See migrations/008_endpoint_access_hardening.sql.
 drop policy if exists "Users can update own profile" on profiles;
-create policy "Users can update own profile"
-  on profiles for update using (auth.uid() = id);
+revoke insert, update, delete on public.profiles from public, anon, authenticated;
 
 -- Auto-create profile on signup
 create or replace function public.handle_new_user()
