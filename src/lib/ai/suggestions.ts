@@ -36,13 +36,26 @@ const RESPONSE_SCHEMA = {
   required: ['activities'],
 }
 
+export interface AiSuggestionPreferences {
+  maxTimeMinutes?: number
+  cleanupLevel?: string
+  supervisionLevel?: string
+}
+
 export async function generateAiSuggestions(
   materialNames: string[],
   childAge: number,
-  count = 3
+  count = 3,
+  preferences?: AiSuggestionPreferences
 ): Promise<AiSuggestion[]> {
   const apiKey = process.env.GOOGLE_AI_API_KEY
   if (!apiKey) return []
+
+  const maxTime = preferences?.maxTimeMinutes ?? 60
+  const extraConstraints = [
+    preferences?.cleanupLevel ? `- Keep cleanup effort at "${preferences.cleanupLevel}" or lower` : null,
+    preferences?.supervisionLevel ? `- Match a supervisionLevel of "${preferences.supervisionLevel}"` : null,
+  ].filter(Boolean).join('\n')
 
   try {
     const ai = new GoogleGenAI({ apiKey })
@@ -54,9 +67,10 @@ The child is ${childAge} years old. Available materials: ${materialNames.join(',
 
 Suggest ${count} different craft projects this child can make RIGHT NOW using only those materials. Each must:
 - Use ONLY materials from the list above (list which ones in materialsNeeded)
-- Be completable in under 60 minutes
+- Be completable in under ${maxTime} minutes
 - Be safe and age-appropriate for a ${childAge}-year-old
-- Have 4-6 clear, concise step-by-step instructions in the steps array`,
+- Have 4-6 clear, concise step-by-step instructions in the steps array
+${extraConstraints}`,
       config: {
         responseMimeType: 'application/json',
         responseSchema: RESPONSE_SCHEMA,

@@ -26,6 +26,7 @@ interface DBProjectData {
   allMaterials: Array<{ id: string; name: string; icon: string | null }>
   substitutions: Record<string, string>
   instructions: Array<{ step: number; instruction: string }>
+  premiumOnly: boolean
 }
 
 async function fetchDBProject(id: string): Promise<DBProjectData | null> {
@@ -57,6 +58,14 @@ async function fetchDBProject(id: string): Promise<DBProjectData | null> {
     .select('source_material_id, substitution_notes')
     .in('source_material_id', materialIds);
 
+  // This page is server-rendered with a service-role client and has no way
+  // to verify the viewer's plan (auth here is client-side/token-based, not
+  // an SSR session) — so premium instructions are never included in the
+  // HTML at all, not just visually hidden. Full content is only served via
+  // the authenticated /api/projects/[id] call the actual /build/ flow
+  // makes with the viewer's bearer token.
+  const premiumOnly = Boolean(project.premium_only);
+
   return {
     projectId: project.id,
     display: toDisplayProject(project),
@@ -67,7 +76,8 @@ async function fetchDBProject(id: string): Promise<DBProjectData | null> {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (subs ?? []).map((s: any) => [s.source_material_id, s.substitution_notes ?? ''])
     ),
-    instructions: (project.instructions ?? []) as Array<{ step: number; instruction: string }>,
+    instructions: premiumOnly ? [] : ((project.instructions ?? []) as Array<{ step: number; instruction: string }>),
+    premiumOnly,
   }
 }
 
@@ -144,7 +154,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   if (!data) return notFound();
 
-  const { projectId, display, required, optional, allMaterials, substitutions, instructions } = data;
+  const { projectId, display, required, optional, allMaterials, substitutions, instructions, premiumOnly } = data;
 
   return (
     <AppShell>
@@ -181,21 +191,35 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           </div>
           <div className="bg-white rounded-3xl shadow-card p-5 mb-6">
             <h2 className="font-heading font-semibold text-base text-charcoal-900 mb-3">
-              Build Steps <span className="text-walnut-500 font-body font-normal text-sm">({instructions.length} steps)</span>
-            </h2>
-            <div className="space-y-3">
-              {instructions.slice(0, 3).map((step, i) => (
-                <div key={step.step} className="flex items-start gap-3">
-                  <div className="w-6 h-6 bg-builder-500 rounded-full flex items-center justify-center text-white text-xs font-heading font-bold shrink-0 mt-0.5">
-                    {i + 1}
-                  </div>
-                  <p className="text-sm font-body text-charcoal-800 leading-relaxed">{step.instruction}</p>
-                </div>
-              ))}
-              {instructions.length > 3 && (
-                <p className="text-xs text-walnut-500 ml-9">+ {instructions.length - 3} more steps</p>
+              Build Steps {!premiumOnly && (
+                <span className="text-walnut-500 font-body font-normal text-sm">({instructions.length} steps)</span>
               )}
-            </div>
+            </h2>
+            {premiumOnly ? (
+              <div className="flex items-center gap-3 rounded-2xl bg-sunshine/15 px-4 py-3">
+                <span className="text-xl">✨</span>
+                <div>
+                  <p className="text-sm font-heading font-semibold text-charcoal-900">Plus feature</p>
+                  <p className="text-xs font-body text-walnut-600">
+                    Upgrade to ScrapLab Plus to unlock the full step-by-step instructions.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {instructions.slice(0, 3).map((step, i) => (
+                  <div key={step.step} className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-builder-500 rounded-full flex items-center justify-center text-white text-xs font-heading font-bold shrink-0 mt-0.5">
+                      {i + 1}
+                    </div>
+                    <p className="text-sm font-body text-charcoal-800 leading-relaxed">{step.instruction}</p>
+                  </div>
+                ))}
+                {instructions.length > 3 && (
+                  <p className="text-xs text-walnut-500 ml-9">+ {instructions.length - 3} more steps</p>
+                )}
+              </div>
+            )}
           </div>
           <Link href={`/build/${projectId}`} className="block">
             <Button variant="primary" size="lg" className="w-full">Start Build →</Button>

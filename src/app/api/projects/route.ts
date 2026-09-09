@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/db/client'
+import { createServiceClient, getUserFromRequest } from '@/lib/db/client'
+import { getUserPlan, redactPremiumProject } from '@/lib/access'
 import { z } from 'zod'
 
 const querySchema = z.object({
@@ -62,6 +63,10 @@ export async function GET(request: NextRequest) {
       )
     }
   }
+
+  const user = await getUserFromRequest(request)
+  const plan = user ? await getUserPlan(db, user.id) : 'free'
+  projects = projects.map((p) => redactPremiumProject(plan, p))
 
   return NextResponse.json({ projects })
 }

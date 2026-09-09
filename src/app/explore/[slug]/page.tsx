@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import type { Activity } from "@/types";
 import { CATEGORY_TILE, categoryEmoji } from "@/lib/categoryTheme";
 import { normalizeActivitySupervisionLevel } from "@/lib/activities/supervision";
+import { redactPremiumActivity } from "@/lib/access";
 
 // Neutral Ink/Slate scale, not green/yellow/red — difficulty must never be
 // mistaken for the Leaf/Amber/Coral supervision-safety coding on this page.
@@ -29,7 +30,11 @@ async function fetchActivity(slug: string): Promise<Activity | null> {
     .or(`id.eq.${slug},slug.eq.${slug}`)
     .single();
   if (error || !data) return null;
-  return data as Activity;
+  // This page is server-rendered with a service-role client and has no way
+  // to verify the viewer's plan (auth here is client-side/token-based, not
+  // an SSR session), so premium content is always redacted here — full
+  // content is only served via the authenticated /api/activities/[id] call.
+  return redactPremiumActivity('free', data as Activity);
 }
 
 export default async function ActivityDetailPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -83,6 +88,17 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
           </div>
 
           {/* Description */}
+          {activity.premium && !activity.description && (
+            <div className="flex items-center gap-3 rounded-2xl bg-sunshine/15 px-4 py-3 mb-4">
+              <span className="text-xl">✨</span>
+              <div>
+                <p className="text-sm font-heading font-semibold text-charcoal-900">Plus feature</p>
+                <p className="text-xs font-body text-walnut-600">
+                  Sign in with ScrapLab Plus to see the full description and expansion ideas.
+                </p>
+              </div>
+            </div>
+          )}
           {activity.description && (
             <div className="bg-white rounded-3xl shadow-card p-5 mb-4">
               <p className="text-sm font-body text-charcoal-800 leading-relaxed">{activity.description}</p>

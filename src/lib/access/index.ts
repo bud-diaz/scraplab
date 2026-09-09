@@ -38,6 +38,33 @@ export function isPremiumProject(plan: Plan, premiumOnly: boolean): boolean {
   return plan === 'plus'
 }
 
+/**
+ * Redacts the paid "how to actually do it" content for a premium project
+ * when the caller isn't Plus, while keeping everything a free/guest user
+ * needs to decide whether to upgrade (title, materials, safety notes,
+ * metadata) visible. Never call this with data that skipped the DB read
+ * entirely — it only hides step-by-step instructions, not the row.
+ */
+export function redactPremiumProject<T extends { premium_only: boolean; instructions?: unknown }>(
+  plan: Plan,
+  project: T
+): T & { previewOnly?: boolean } {
+  if (!project.premium_only || plan === 'plus') return project
+  return { ...project, instructions: [], previewOnly: true }
+}
+
+/**
+ * Same idea for activities: premium gates the descriptive/expansion
+ * content, never the materials list or safety notes — a preview must
+ * never hide a safety warning to create upsell pressure.
+ */
+export function redactPremiumActivity<
+  T extends { premium: boolean; description?: unknown; expansion_prompts?: unknown; learning_angle?: unknown }
+>(plan: Plan, activity: T): T & { previewOnly?: boolean } {
+  if (!activity.premium || plan === 'plus') return activity
+  return { ...activity, description: null, expansion_prompts: [], learning_angle: null, previewOnly: true }
+}
+
 export async function getUserPlan(
   supabase: ReturnType<typeof import('../db/client').createServiceClient>,
   userId: string

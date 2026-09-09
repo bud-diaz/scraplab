@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/db/client'
+import { createServiceClient, getUserFromRequest } from '@/lib/db/client'
 import { isSafeRouteSegment } from '@/lib/validation/identifiers'
+import { getUserPlan, redactPremiumActivity } from '@/lib/access'
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
@@ -25,5 +26,8 @@ export async function GET(
     return NextResponse.json({ error: 'Activity not found' }, { status: 404 })
   }
 
-  return NextResponse.json({ activity: data })
+  const user = await getUserFromRequest(request)
+  const plan = user ? await getUserPlan(db, user.id) : 'free'
+
+  return NextResponse.json({ activity: redactPremiumActivity(plan, data) })
 }

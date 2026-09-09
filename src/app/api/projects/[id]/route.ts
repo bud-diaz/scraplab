@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/db/client'
+import { createServiceClient, getUserFromRequest } from '@/lib/db/client'
 import { resolveProject } from '@/lib/projects/resolve'
+import { getUserPlan, redactPremiumProject } from '@/lib/access'
 
 interface ProjectRow {
   id: string
+  premium_only: boolean
   project_materials: Array<{ material_id: string }>
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
@@ -24,6 +26,10 @@ export async function GET(
   if (!project) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 })
   }
+
+  const user = await getUserFromRequest(request)
+  const plan = user ? await getUserPlan(db, user.id) : 'free'
+  project = redactPremiumProject(plan, project)
 
   // Fetch substitutions for all materials in this project
   const materialIds = project.project_materials.map(

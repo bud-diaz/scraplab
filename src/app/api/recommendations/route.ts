@@ -3,13 +3,17 @@ import { z } from 'zod'
 import { createServiceClient } from '@/lib/db/client'
 import { requireAuth } from '@/lib/db/auth'
 import { generateRecommendations } from '@/lib/recommendations'
-import { getUserPlan, isWithinLimit, PLAN_LIMITS } from '@/lib/access'
+import { PLAN_LIMITS, getUserPlan } from '@/lib/access'
+import { getUserIdentity, reserveRecommendationUsage } from '@/lib/access/recommendation-usage'
 import { generateAiSuggestions } from '@/lib/ai/suggestions'
 import { uuidSchema } from '@/lib/validation/identifiers'
 
+const MIN_SUPPORTED_AGE = 3
+
 const bodySchema = z.object({
   materialIds: z.array(uuidSchema).min(1).max(50),
-  childAge: z.number().int().min(0).max(18),
+  childAge: z.number().int().min(MIN_SUPPORTED_AGE).max(18),
+  requestId: z.string().max(100).optional(),
   preferences: z
     .object({
       maxTimeMinutes: z.number().int().min(1).optional(),
@@ -40,19 +44,17 @@ export async function POST(request: NextRequest) {
   const db = createServiceClient()
   const plan = await getUserPlan(db, user.id)
 
-  // Check daily recommendation limit for free users
-  if (plan === 'free') {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    const { count } = await db
-      .from('build_history')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .gte('started_at', today.toISOString())
-
-    const used = count ?? 0
-    if (!isWithinLimit(plan, 'dailyRecommendations', used)) {
+  // Check daily recommendation limit for free users. Tracks actual
+  // recommendation requests (recommendation_usage), not build starts —
+  // requestId makes a retried call idempotent instead of double-counting.
+  if (plan !== 'plus') {
+    const reservation = await reserveRecommendationUsage(
+      db,
+      getUserIdentity(user.id),
+      PLAN_LIMITS.free.dailyRecommendations,
+      parsed.data.requestId
+    )
+    if (!reservation.allowed) {
       return NextResponse.json(
         {
           error: 'Daily recommendation limit reached',
@@ -97,7 +99,8 @@ export async function POST(request: NextRequest) {
     aiSuggestions = await generateAiSuggestions(
       materialNames,
       parsed.data.childAge,
-      3 - recommendations.length
+      3 - recommendations.length,
+      parsed.data.preferences
     )
   }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/db/client'
+import { createServiceClient, getUserFromRequest } from '@/lib/db/client'
+import { getUserPlan, redactPremiumActivity } from '@/lib/access'
 import { z } from 'zod'
 
 const querySchema = z.object({
@@ -47,5 +48,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ activities: data ?? [], total: count ?? 0 })
+  const user = await getUserFromRequest(request)
+  const plan = user ? await getUserPlan(db, user.id) : 'free'
+  const activities = (data ?? []).map((a) => redactPremiumActivity(plan, a))
+
+  return NextResponse.json({ activities, total: count ?? 0 })
 }

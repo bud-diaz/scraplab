@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { MetadataChip } from "@/components/ui/MetadataChip";
 import type { ActivityMatch } from "@/app/api/activity-recommendations/route";
 import type { AiSuggestion } from "@/lib/ai/suggestions";
+import { useAuth } from "@/lib/auth-context";
 
 const FILTERS = ["All", "Quick", "Easy", "Family"] as const;
 type Filter = typeof FILTERS[number];
@@ -56,12 +57,14 @@ function ResultsContent() {
   const searchParams = useSearchParams();
   const selectedIds = searchParams.getAll("materials");
   const childAge = Math.max(3, Math.min(18, parseInt(searchParams.get("age") ?? "7", 10)));
+  const { session } = useAuth();
 
   const [activeFilter, setActiveFilter] = useState<Filter>("All");
   const [matches, setMatches] = useState<ActivityMatch[]>([]);
   const [aiSuggestions, setAiSuggestions] = useState<AiSuggestion[]>([]);
   const [loading, setLoading] = useState(() => selectedIds.length > 0);
   const [error, setError] = useState<string | null>(null);
+  const [limitReached, setLimitReached] = useState(false);
   const loadedFor = useRef<string>("");
 
   useEffect(() => {
@@ -72,13 +75,25 @@ function ResultsContent() {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setLimitReached(false);
 
     async function load() {
       const res = await fetch('/api/activity-recommendations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ materialIds: selectedIds, childAge }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({
+          materialIds: selectedIds,
+          childAge,
+          requestId: `${key}:${session?.user.id ?? "guest"}`,
+        }),
       });
+      if (res.status === 429) {
+        if (!cancelled) setLimitReached(true);
+        return;
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: { matches: ActivityMatch[]; aiSuggestions: AiSuggestion[] } = await res.json();
       if (!cancelled) {
@@ -92,7 +107,7 @@ function ResultsContent() {
       .finally(() => { if (!cancelled) setLoading(false) });
 
     return () => { cancelled = true; };
-  }, [selectedIds.join(","), childAge]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedIds.join(","), childAge, session]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = matches.filter(({ activity }) => {
     if (activeFilter === "Quick") return activity.time_minutes <= 20;
@@ -124,6 +139,16 @@ function ResultsContent() {
           {[1, 2, 3, 4].map(i => (
             <div key={i} className="bg-white rounded-3xl shadow-card h-44 animate-pulse" />
           ))}
+        </div>
+      ) : limitReached ? (
+        <div className="px-4">
+          <EmptyState
+            emoji="✨"
+            title="Daily limit reached"
+            description="You've used today's free recommendations. Upgrade to ScrapLab Plus for unlimited builds, or come back tomorrow."
+            ctaLabel="Upgrade to Plus"
+            ctaHref="/subscription"
+          />
         </div>
       ) : error ? (
         <div className="px-4">

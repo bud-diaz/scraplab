@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/db/client'
+import { createServiceClient, getUserFromRequest } from '@/lib/db/client'
 import { generateAiSuggestions } from '@/lib/ai/suggestions'
+import { getUserPlan, PLAN_LIMITS, redactPremiumActivity } from '@/lib/access'
+import { getGuestIdentity, getUserIdentity, reserveRecommendationUsage } from '@/lib/access/recommendation-usage'
 import { z } from 'zod'
-import type { Activity } from '@/types'
+import type { Activity, Plan } from '@/types'
+
+// Matches the frontend's own minimum age input — activity content/safety
+// notes are not authored or reviewed for children younger than this.
+const MIN_SUPPORTED_AGE = 3
 
 const bodySchema = z.object({
   materialIds: z.array(z.string()).min(1).max(50),
-  childAge: z.number().int().min(0).max(18),
+  childAge: z.number().int().min(MIN_SUPPORTED_AGE).max(18),
+  requestId: z.string().max(100).optional(),
 })
 
 export type MatchLabel = 'Perfect Match' | 'Good Match' | 'Partial Match'
@@ -45,8 +52,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { materialIds, childAge } = parsed.data
+  const { materialIds, childAge, requestId } = parsed.data
   const db = createServiceClient()
+
+  // Auth is optional: guests get a bounded allowance rather than being
+  // locked out of the explore-without-signup flow, but also rather than
+  // unmetered anonymous AI access.
+  const user = await getUserFromRequest(request)
+  const plan: Plan = user ? await getUserPlan(db, user.id) : 'free'
+  const identity = user ? getUserIdentity(user.id) : getGuestIdentity(request)
+
+  if (plan !== 'plus') {
+    const reservation = await reserveRecommendationUsage(db, identity, PLAN_LIMITS.free.dailyRecommendations, requestId)
+    if (!reservation.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Daily recommendation limit reached',
+          limit: PLAN_LIMITS.free.dailyRecommendations,
+          upgradeRequired: true,
+        },
+        { status: 429 }
+      )
+    }
+  }
 
   // 1. Resolve material IDs → flat set of lowercase strings (name + all aliases)
   const { data: materials, error: matErr } = await db
@@ -94,7 +122,7 @@ export async function POST(request: NextRequest) {
     const totalRequired = required.length || 1
     const score = matchedCount / totalRequired
     return {
-      activity: a,
+      activity: redactPremiumActivity(plan, a),
       matchedCount,
       totalRequired,
       matchScore: score,

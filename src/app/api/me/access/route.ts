@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/db/client'
 import { requireAuth } from '@/lib/db/auth'
 import { getUserPlan, getPlanLimits } from '@/lib/access'
+import { getRecommendationUsageToday, getUserIdentity } from '@/lib/access/recommendation-usage'
 
 export async function GET(request: NextRequest) {
   const { user, error } = await requireAuth(request)
@@ -11,14 +12,7 @@ export async function GET(request: NextRequest) {
   const plan = await getUserPlan(db, user.id)
   const limits = getPlanLimits(plan)
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  const { count: recommendationsToday } = await db
-    .from('build_history')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .gte('started_at', today.toISOString())
+  const recommendationsToday = await getRecommendationUsageToday(db, getUserIdentity(user.id))
 
   return NextResponse.json({
     plan,
@@ -29,7 +23,7 @@ export async function GET(request: NextRequest) {
       savedProjects: limits.savedProjects === Infinity ? null : limits.savedProjects,
     },
     usage: {
-      recommendationsToday: recommendationsToday ?? 0,
+      recommendationsToday,
     },
   })
 }

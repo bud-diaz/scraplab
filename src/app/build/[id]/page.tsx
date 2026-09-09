@@ -19,7 +19,7 @@ export default function BuildPage({ params }: { params: Promise<{ id: string }> 
 
 function BuildPageContent({ projectId }: { projectId: string }) {
   const mockProject = mockProjects.find(p => p.id === projectId);
-  const { session } = useAuth();
+  const { session, loading: authLoading } = useAuth();
   const router = useRouter();
 
   const [steps, setSteps] = useState<BuildStep[]>(mockProject?.steps ?? []);
@@ -39,10 +39,15 @@ function BuildPageContent({ projectId }: { projectId: string }) {
   const startedRef = useRef(false);
 
   useEffect(() => {
-    if (mockProject || fetched.current) return;
+    // Wait for auth to resolve so a signed-in Plus user's request carries
+    // their token — fetching before then would hit the API unauthenticated
+    // and get back a redacted (preview-only) premium project.
+    if (mockProject || fetched.current || authLoading) return;
     fetched.current = true;
 
-    fetch(`/api/projects/${projectId}`)
+    fetch(`/api/projects/${projectId}`, {
+      headers: session ? { Authorization: `Bearer ${session.access_token}` } : {},
+    })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
       .then(({ project: p }) => {
         if (!p?.instructions?.length) { setMissing(true); return; }
@@ -61,7 +66,7 @@ function BuildPageContent({ projectId }: { projectId: string }) {
       })
       .catch(() => setMissing(true))
       .finally(() => setLoading(false));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Start-or-resume the persisted build once we know a real project id and
   // the user is signed in. Guests keep working in local-only state.
