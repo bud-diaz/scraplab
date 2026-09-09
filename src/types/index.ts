@@ -197,4 +197,8 @@ export interface Activity {
   inventory_friendly: boolean
   remixable: boolean
   created_at: string
+  /** Links to a curated projects.id with reviewed step-by-step
+   * instructions. Null means this activity is an open-ended prompt with
+   * no guided build flow — see migrations/010_activity_project_links.sql. */
+  project_id: string | null
 }

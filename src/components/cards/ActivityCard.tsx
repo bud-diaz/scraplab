@@ -4,8 +4,9 @@ import { Clock, Zap, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MetadataChip } from "@/components/ui/MetadataChip";
 import { SupervisionBadge } from "@/components/ui/SupervisionBadge";
-import type { Activity, SupervisionLevel } from "@/types";
+import type { Activity } from "@/types";
 import { CATEGORY_TILE, categoryEmoji } from "@/lib/categoryTheme";
+import { normalizeActivitySupervisionLevel } from "@/lib/activities/supervision";
 
 // Neutral Ink/Slate scale, not green/yellow/red — difficulty must never be
 // mistaken for the Leaf/Amber/Coral supervision-safety coding on the same card.
@@ -66,7 +67,7 @@ export function ActivityCard({ activity, matchLabel }: ActivityCardProps) {
             <MetadataChip icon={<Zap size={10} />} label={activity.energy_level} />
             <MetadataChip icon={<Users size={10} />} label={activity.age_ranges[0] ?? "all ages"} />
             {activity.supervision_level && (
-              <SupervisionBadge level={activity.supervision_level as SupervisionLevel} />
+              <SupervisionBadge level={normalizeActivitySupervisionLevel(activity.supervision_level)} />
             )}
           </div>
         </div>

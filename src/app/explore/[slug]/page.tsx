@@ -7,8 +7,9 @@ import { createServiceClient } from "@/lib/db/client";
 import { isSafeRouteSegment } from "@/lib/validation/identifiers";
 import { Clock, Zap, Users, ArrowLeft, Lightbulb, Shield, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Activity, SupervisionLevel } from "@/types";
+import type { Activity } from "@/types";
 import { CATEGORY_TILE, categoryEmoji } from "@/lib/categoryTheme";
+import { normalizeActivitySupervisionLevel } from "@/lib/activities/supervision";
 
 // Neutral Ink/Slate scale, not green/yellow/red — difficulty must never be
 // mistaken for the Leaf/Amber/Coral supervision-safety coding on this page.
@@ -77,7 +78,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
             <MetadataChip icon={<Clock size={11} />} label={`${activity.time_minutes} min`} />
             <MetadataChip icon={<Zap size={11} />} label={activity.energy_level} />
             <MetadataChip icon={<Users size={11} />} label={activity.age_ranges.join(", ")} />
-            <SupervisionBadge level={activity.supervision_level as SupervisionLevel} />
+            <SupervisionBadge level={normalizeActivitySupervisionLevel(activity.supervision_level)} />
             <MetadataChip icon={<Wrench size={11} />} label={activity.solo_or_group} />
           </div>
 
@@ -186,9 +187,19 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
             )}
           </div>
 
-          <Button variant="primary" size="lg" className="w-full">
-            Let&apos;s build it!
-          </Button>
+          {activity.project_id ? (
+            <Link href={`/projects/${activity.project_id}`} className="block">
+              <Button variant="primary" size="lg" className="w-full">
+                Let&apos;s build it!
+              </Button>
+            </Link>
+          ) : (
+            <div className="rounded-2xl bg-cream-100 px-4 py-3 text-center">
+              <p className="text-sm font-body text-walnut-700">
+                This is an open-ended activity — follow the description above at your own pace. There&apos;s no step-by-step build guide for it yet.
+              </p>
+            </div>
+          )}
         </div>
     </div>
   );
