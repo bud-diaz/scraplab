@@ -1,9 +1,9 @@
 "use client";
 import Link from "next/link";
-import { ChevronRight, Package, CreditCard, Bell, HelpCircle } from "lucide-react";
+import { ChevronRight, Package, CreditCard, Bell, HelpCircle, Shield } from "lucide-react";
 
 type MenuItem = {
-  iconType: "package" | "credit-card" | "bell" | "help";
+  iconType: "package" | "credit-card" | "bell" | "help" | "shield";
   label: string;
   href: string;
   badge?: string;
@@ -29,12 +29,19 @@ const menuSections: Section[] = [
       { iconType: "help", label: "Help & Support", href: "#" },
     ],
   },
+  {
+    title: "Legal",
+    items: [
+      { iconType: "shield", label: "Privacy Policy", href: "/privacy" },
+    ],
+  },
 ];
 
 function MenuIcon({ type }: { type: MenuItem["iconType"] }) {
   if (type === "package") return <Package size={16} />;
   if (type === "credit-card") return <CreditCard size={16} />;
   if (type === "bell") return <Bell size={16} />;
+  if (type === "shield") return <Shield size={16} />;
   return <HelpCircle size={16} />;
 }
 

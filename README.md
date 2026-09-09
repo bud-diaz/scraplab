@@ -159,6 +159,7 @@ Core entities (see `src/types/index.ts` and `supabase/migrations`):
 - **Payments:** Stripe (`stripe`) — subscriptions, billing portal, webhooks
 - **Validation:** Zod
 - **Tooling:** ESLint, TypeScript
+- **iOS app:** Capacitor (remote-URL mode, wrapping this same web app) + RevenueCat for Apple In-App Purchase
 
 ## Getting Started
 
@@ -192,6 +193,36 @@ See `.env.example` for the full list with setup notes. At a minimum you'll need:
 | `STRIPE_SECRET_KEY` / `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe API keys |
 | `STRIPE_PLUS_PRICE_ID` | Price ID for the ScrapLab Plus recurring plan |
 | `STRIPE_WEBHOOK_SECRET` | Signing secret for the Stripe webhook endpoint |
+| `NEXT_PUBLIC_REVENUECAT_IOS_API_KEY` / `REVENUECAT_SECRET_API_KEY` / `REVENUECAT_WEBHOOK_SECRET` | RevenueCat keys for the iOS app's Apple In-App Purchase subscription |
+
+## iOS App
+
+The iOS app is a Capacitor shell around this same Next.js app, configured in
+"remote URL" mode — the native WKWebView loads the live production
+deployment rather than a bundled static export, since the app relies on
+Server Components and API routes with a service-role secret that must never
+ship client-side. Native functionality (camera, Apple In-App Purchase,
+haptics, share, safe-area/status bar handling) is layered on top via
+Capacitor plugins, all under `src/lib/native/` and `src/components/native/`.
+
+```bash
+npm install                 # installs both web and Capacitor deps
+npx cap sync ios            # regenerate ios/ from installed plugins
+npx cap open ios            # open the Xcode project (requires Xcode, macOS)
+```
+
+For local development against `next dev` instead of production, use
+`CAP_ENV=dev npx cap sync ios` (see `capacitor.config.ts`). Camera and Apple
+In-App Purchase both require a physical iOS device to test — the Simulator
+has no real camera and cannot complete real StoreKit purchases without a
+Sandbox Tester account.
+
+Subscriptions use a separate purchase path from the web app: web checkout
+still goes through Stripe (`api/webhooks/stripe`), while the iOS app
+purchases through Apple via RevenueCat (`api/webhooks/revenuecat`,
+`api/me/sync-revenuecat`). Both write to the same `profiles.plan` column,
+guarded by `profiles.plan_source` so the two webhooks can't clobber each
+other's grant for the same user (see `supabase/migrations/007_ios_iap.sql`).
 
 ## Project Structure
 

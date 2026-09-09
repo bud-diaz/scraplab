@@ -21,7 +21,7 @@ export function BottomNav() {
     access.usage.recommendationsToday >= (access.limits.dailyRecommendations ?? 3);
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 mx-3 mb-3 bg-white rounded-full shadow-card-lg overflow-hidden">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 mx-3 mb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-white rounded-full shadow-card-lg overflow-hidden">
       {atLimit && (
         <div className="h-0.5 bg-coral" />
       )}

@@ -10,7 +10,7 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-cream-50">
       <TopNav />
-      <main className="pb-20 md:pb-0 md:pt-16">
+      <main className="pt-[env(safe-area-inset-top)] pb-20 md:pb-0 md:pt-16">
         {children}
       </main>
       <BottomNav />

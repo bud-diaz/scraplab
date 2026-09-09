@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import type { SupabaseClient, Session, User } from '@supabase/supabase-js'
+import { configureRevenueCat } from './native/purchases'
 
 // Lazy singleton — avoids module-level createClient() running during
 // Next.js build prerendering before NEXT_PUBLIC_* vars are injected.
@@ -46,11 +47,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
+      if (session?.user) configureRevenueCat(session.user.id)
     })
 
     const { data: { subscription } } = sb.auth.onAuthStateChange((_, session) => {
       setSession(session)
       setUser(session?.user ?? null)
+      if (session?.user) configureRevenueCat(session.user.id)
     })
 
     return () => subscription.unsubscribe()

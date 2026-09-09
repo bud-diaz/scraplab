@@ -8,6 +8,7 @@ import { ProfileMenu } from "@/components/cards/ProfileMenu";
 import { UpgradeCard } from "@/components/ui/UpgradeCard";
 import { useAuth } from "@/lib/auth-context";
 import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
+import { isNativeIOS } from "@/lib/native/purchases";
 
 interface ChildProfile {
   id: string;
@@ -388,6 +389,82 @@ function StaplesSection({ session }: { session: { access_token: string } }) {
   );
 }
 
+function DeleteAccountSection({ session }: { session: { access_token: string } }) {
+  const { signOut } = useAuth();
+  const router = useRouter();
+  const access = usePlanAccess();
+  const native = isNativeIOS();
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/me/delete-account', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!res.ok && res.status !== 204) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? 'Could not delete account. Please try again.');
+        setDeleting(false);
+        return;
+      }
+      await signOut();
+      router.replace('/auth');
+    } catch {
+      setError('Network error. Please try again.');
+      setDeleting(false);
+    }
+  };
+
+  if (confirming) {
+    return (
+      <div className="bg-coral/10 border border-coral/30 rounded-2xl px-4 py-3.5 space-y-2">
+        <p className="text-sm font-body text-coral-text">
+          This permanently deletes your account, kid profiles, saved projects, and build history. This can&apos;t be undone.
+        </p>
+        {access?.plan === 'plus' && (
+          <p className="text-xs font-body text-coral-text">
+            {native
+              ? "This does not cancel your Apple subscription — cancel it separately from Settings → your name → Subscriptions, or you'll keep being billed."
+              : 'Your subscription will be cancelled automatically.'}
+          </p>
+        )}
+        {error && <p className="text-xs font-body text-coral-text">{error}</p>}
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="flex-1 text-xs bg-coral text-white rounded-xl py-2 font-heading font-semibold disabled:opacity-60"
+          >
+            {deleting ? 'Deleting…' : 'Yes, delete my account'}
+          </button>
+          <button
+            onClick={() => setConfirming(false)}
+            disabled={deleting}
+            className="flex-1 text-xs bg-cream-100 text-walnut-700 rounded-xl py-2 font-heading font-semibold"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => setConfirming(true)}
+      className="flex items-center gap-2 text-sm text-coral-text hover:text-coral font-heading font-medium"
+    >
+      <Trash2 size={15} />
+      Delete Account
+    </button>
+  );
+}
+
 export default function ProfilePage() {
   const { user, session, signOut } = useAuth();
   const router = useRouter();
@@ -448,15 +525,18 @@ export default function ProfilePage() {
 
         <ProfileMenu />
 
-        <div className="px-4 mb-8">
-          {user ? (
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-2 text-sm text-coral-text hover:text-coral font-heading font-medium"
-            >
-              <LogOut size={15} />
-              Sign Out
-            </button>
+        <div className="px-4 mb-8 space-y-4">
+          {user && session ? (
+            <>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-2 text-sm text-coral-text hover:text-coral font-heading font-medium"
+              >
+                <LogOut size={15} />
+                Sign Out
+              </button>
+              <DeleteAccountSection session={session} />
+            </>
           ) : (
             <Link
               href="/auth"

@@ -6,6 +6,8 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { UpgradeCard } from "@/components/ui/UpgradeCard";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/auth-context";
+import { isNative, captureNativePhoto } from "@/lib/native/camera";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { Camera, Upload, Loader2, CheckCircle2 } from "lucide-react";
 import type { DetectedMaterial } from "@/types";
 
@@ -67,8 +69,21 @@ export default function ScanPage() {
     if (file?.type.startsWith('image/')) handleFile(file);
   };
 
+  const handleCapture = async () => {
+    setDetected(null);
+    setPreview(null);
+    setError(null);
+    if (isNative()) {
+      const file = await captureNativePhoto();
+      if (file) handleFile(file);
+      return;
+    }
+    fileRef.current?.click();
+  };
+
   const handleConfirm = () => {
     if (!detected?.length) return;
+    if (isNative()) Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
     const params = new URLSearchParams();
     detected.forEach(m => params.append('materials', m.materialId));
     params.set('age', '7');
@@ -169,7 +184,7 @@ export default function ScanPage() {
                 variant="secondary"
                 size="md"
                 className="flex-1 flex items-center justify-center gap-2"
-                onClick={() => { setDetected(null); setPreview(null); setError(null); fileRef.current?.click(); }}
+                onClick={handleCapture}
               >
                 <Upload size={15} />
                 {detected || preview ? 'Try Another' : 'Upload Photo'}
