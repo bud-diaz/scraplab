@@ -90,6 +90,7 @@ export interface BuildHistory {
   project_id: string
   child_profile_id: string | null
   completion_status: CompletionStatus
+  current_step: number
   started_at: string
   completed_at: string | null
   project?: Project

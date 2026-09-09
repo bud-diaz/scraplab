@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 
-const mocks = vi.hoisted(() => ({ auth: vi.fn(), from: vi.fn() }))
+const mocks = vi.hoisted(() => ({ auth: vi.fn(), from: vi.fn(), rpc: vi.fn() }))
 vi.mock('@/lib/db/auth', () => ({ requireAuth: mocks.auth }))
-vi.mock('@/lib/db/client', () => ({ createServiceClient: () => ({ from: mocks.from }) }))
+vi.mock('@/lib/db/client', () => ({ createServiceClient: () => ({ from: mocks.from, rpc: mocks.rpc }) }))
 
 import { POST } from '@/app/api/build-history/route'
 
@@ -48,7 +48,8 @@ describe('POST /api/build-history child profile ownership', () => {
     expect(mocks.from).not.toHaveBeenCalledWith('build_history')
   })
 
-  it('creates a build_history row when the caller owns the child profile', async () => {
+  it('creates/resumes a build_history row when the caller owns the child profile', async () => {
+    mocks.rpc.mockResolvedValue({ data: { id: 'bh-1' }, error: null })
     mocks.from.mockImplementation((table: string) => {
       if (table === 'child_profiles') return chain({ data: { id: OWN_CHILD }, error: null })
       if (table === 'build_history')
@@ -60,10 +61,14 @@ describe('POST /api/build-history child profile ownership', () => {
 
     expect(response.status).toBe(201)
     expect(mocks.from).toHaveBeenCalledWith('child_profiles')
-    expect(mocks.from).toHaveBeenCalledWith('build_history')
+    expect(mocks.rpc).toHaveBeenCalledWith(
+      'start_or_resume_build',
+      expect.objectContaining({ p_project_id: PROJECT_ID, p_child_profile_id: OWN_CHILD }),
+    )
   })
 
   it('skips the ownership check when no childProfileId is supplied', async () => {
+    mocks.rpc.mockResolvedValue({ data: { id: 'bh-1' }, error: null })
     mocks.from.mockImplementation((table: string) => {
       if (table === 'build_history') return chain({ data: { id: 'bh-1', project_id: PROJECT_ID }, error: null })
       throw new Error(`unexpected table ${table}`)
@@ -73,5 +78,12 @@ describe('POST /api/build-history child profile ownership', () => {
 
     expect(response.status).toBe(201)
     expect(mocks.from).not.toHaveBeenCalledWith('child_profiles')
+  })
+
+  it('returns 500 without creating a row if the resume RPC fails', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: 'db offline' } })
+    const response = await POST(request({ projectId: PROJECT_ID }))
+    expect(response.status).toBe(500)
+    expect(mocks.from).not.toHaveBeenCalledWith('build_history')
   })
 })

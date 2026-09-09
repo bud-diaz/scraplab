@@ -1,10 +1,9 @@
-import { Button } from "@/components/ui/Button";
 import { projects as mockProjects } from "@/lib/mock-data";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { createServiceClient } from "@/lib/db/client";
 import { resolveProject } from "@/lib/projects/resolve";
 import { getProjectDisplay } from "@/lib/display";
+import { CompleteBuildActions } from "@/components/build/CompleteBuildActions";
 
 export function generateStaticParams() {
   return mockProjects.map(p => ({ id: p.id }));
@@ -16,6 +15,9 @@ export default async function CompletePage({ params }: { params: Promise<{ id: s
 
   let emoji = "🎉";
   let title = "Your Build";
+  // Mock/offline sample builds were never persisted as a real projects.id
+  // UUID, so there's nothing a "Save to Library" call could reference.
+  let persistedProjectId: string | null = null;
 
   if (mockProject) {
     emoji = mockProject.emoji;
@@ -24,10 +26,10 @@ export default async function CompletePage({ params }: { params: Promise<{ id: s
     // DB fallback for UUID or slug project identifiers. A malformed
     // identifier is treated as not-found; a genuine DB/config failure
     // propagates instead of silently rendering 404 (see F7).
-    let project: { title: string; slug: string } | null;
+    let project: { id: string; title: string; slug: string } | null;
     try {
       const db = createServiceClient();
-      project = await resolveProject<{ title: string; slug: string }>(db, id, 'title, slug');
+      project = await resolveProject<{ id: string; title: string; slug: string }>(db, id, 'id, title, slug');
     } catch (err) {
       if (err instanceof Error && err.message.startsWith('Invalid project identifier')) return notFound();
       throw err;
@@ -36,6 +38,7 @@ export default async function CompletePage({ params }: { params: Promise<{ id: s
     if (!project) return notFound();
     title = project.title;
     emoji = getProjectDisplay(project.slug).emoji;
+    persistedProjectId = project.id;
   }
 
   const confettiDots = [
@@ -64,28 +67,7 @@ export default async function CompletePage({ params }: { params: Promise<{ id: s
       </div>
 
       <div className="bg-cream-50 rounded-t-[32px] px-4 pt-8 pb-8 flex flex-col items-center">
-        <div className="bg-white rounded-3xl shadow-card p-4 mb-6 w-full max-w-xs">
-          <p className="text-sm font-heading font-medium text-charcoal-800 mb-3 text-center">How was it?</p>
-          <div className="flex gap-2 justify-center">
-            {["😅 Too Hard", "👍 Just Right", "⚡ Too Easy"].map(label => (
-              <button
-                key={label}
-                className="flex-1 text-xs bg-white border border-kraft-300 rounded-xl py-2 font-heading font-medium text-walnut-700 hover:border-builder-500 hover:text-builder-500 transition-colors"
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3 w-full max-w-xs">
-          <Link href="/library" className="block">
-            <Button variant="primary" className="w-full" size="lg">Save to Library</Button>
-          </Link>
-          <Link href="/create/manual" className="block">
-            <Button variant="secondary" className="w-full" size="lg">Build Something Else</Button>
-          </Link>
-        </div>
+        <CompleteBuildActions projectId={persistedProjectId} />
       </div>
     </div>
   );

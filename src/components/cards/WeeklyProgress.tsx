@@ -6,7 +6,7 @@ const WEEKLY_GOAL = 5;
 
 interface BuildRow {
   completion_status?: string;
-  started_at?: string;
+  completed_at?: string | null;
 }
 
 /**
@@ -35,8 +35,8 @@ export function WeeklyProgress() {
           rows.filter(
             (b) =>
               b.completion_status === "completed" &&
-              b.started_at &&
-              new Date(b.started_at).getTime() >= since
+              b.completed_at &&
+              new Date(b.completed_at).getTime() >= since
           ).length
         );
       })

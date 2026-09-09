@@ -58,19 +58,28 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // start_or_resume_build serializes concurrent starts for the same
+  // (user, project) via a DB-level unique partial index, so a retried
+  // request or an effect firing twice can never create duplicate
+  // 'started' rows — it resumes the existing one instead.
+  const { data: buildRow, error: rpcError } = await db.rpc('start_or_resume_build', {
+    p_user_id: user.id,
+    p_project_id: parsed.data.projectId,
+    p_child_profile_id: parsed.data.childProfileId ?? null,
+  })
+
+  if (rpcError || !buildRow) {
+    return NextResponse.json({ error: rpcError?.message ?? 'Could not start build' }, { status: 500 })
+  }
+
   const { data, error: dbError } = await db
     .from('build_history')
-    .insert({
-      user_id: user.id,
-      project_id: parsed.data.projectId,
-      child_profile_id: parsed.data.childProfileId ?? null,
-      completion_status: 'started',
-    })
     .select('*, project:projects(*)')
+    .eq('id', buildRow.id)
     .single()
 
-  if (dbError) {
-    return NextResponse.json({ error: dbError.message }, { status: 500 })
+  if (dbError || !data) {
+    return NextResponse.json({ error: 'Could not load build entry' }, { status: 500 })
   }
 
   return NextResponse.json({ buildEntry: data }, { status: 201 })
