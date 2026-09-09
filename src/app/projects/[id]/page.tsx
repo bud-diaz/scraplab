@@ -10,6 +10,7 @@ import { Clock, Trash2, Users, BarChart2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { createServiceClient } from "@/lib/db/client";
+import { resolveProject } from "@/lib/projects/resolve";
 import { toDisplayProject } from "@/lib/display";
 import type { DisplayProject } from "@/lib/display";
 
@@ -29,13 +30,23 @@ interface DBProjectData {
 
 async function fetchDBProject(id: string): Promise<DBProjectData | null> {
   const db = createServiceClient();
-  const { data: project, error } = await db
-    .from('projects')
-    .select('*, project_materials(material_id, required, quantity_note, material:materials(id, name, icon))')
-    .or(`id.eq.${id},slug.eq.${id}`)
-    .single();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let project: any;
+  try {
+    project = await resolveProject(
+      db,
+      id,
+      '*, project_materials(material_id, required, quantity_note, material:materials(id, name, icon))'
+    );
+  } catch (err) {
+    // A malformed identifier (never a valid id/slug shape) is effectively
+    // "not found"; any other error is a real DB/config failure that should
+    // surface via the nearest error boundary rather than render as 404.
+    if (err instanceof Error && err.message.startsWith('Invalid project identifier')) return null;
+    throw err;
+  }
 
-  if (error || !project) return null;
+  if (!project) return null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pm = project.project_materials as Array<{ material_id: string; required: boolean; material: any }>;
@@ -125,14 +136,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     );
   }
 
-  // DB fallback: handles UUIDs and DB slugs from recommendation results
-  // Data is fetched before JSX render to satisfy react-hooks/error-boundaries lint rule
-  let data: DBProjectData | null = null;
-  try {
-    data = await fetchDBProject(id);
-  } catch {
-    return notFound();
-  }
+  // DB fallback: handles UUIDs and DB slugs from recommendation results.
+  // A real DB/config failure here throws and hits the nearest error
+  // boundary instead of masquerading as notFound() (see F7 in the
+  // endpoint audit) — only a genuinely missing row renders 404.
+  const data = await fetchDBProject(id);
 
   if (!data) return notFound();
 

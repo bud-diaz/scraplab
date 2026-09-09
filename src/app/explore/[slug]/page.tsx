@@ -4,6 +4,7 @@ import { MetadataChip } from "@/components/ui/MetadataChip";
 import { SupervisionBadge } from "@/components/ui/SupervisionBadge";
 import { Button } from "@/components/ui/Button";
 import { createServiceClient } from "@/lib/db/client";
+import { isSafeRouteSegment } from "@/lib/validation/identifiers";
 import { Clock, Zap, Users, ArrowLeft, Lightbulb, Shield, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Activity, SupervisionLevel } from "@/types";
@@ -19,6 +20,7 @@ const DIFFICULTY_COLOR: Record<string, string> = {
 };
 
 async function fetchActivity(slug: string): Promise<Activity | null> {
+  if (!isSafeRouteSegment(slug)) return null;
   const db = createServiceClient();
   const { data, error } = await db
     .from("activities")

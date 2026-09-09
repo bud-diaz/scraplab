@@ -5,9 +5,10 @@ import { requireAuth } from '@/lib/db/auth'
 import { generateRecommendations } from '@/lib/recommendations'
 import { getUserPlan, isWithinLimit, PLAN_LIMITS } from '@/lib/access'
 import { generateAiSuggestions } from '@/lib/ai/suggestions'
+import { uuidSchema } from '@/lib/validation/identifiers'
 
 const bodySchema = z.object({
-  materialIds: z.array(z.string().uuid()).min(1).max(50),
+  materialIds: z.array(uuidSchema).min(1).max(50),
   childAge: z.number().int().min(0).max(18),
   preferences: z
     .object({

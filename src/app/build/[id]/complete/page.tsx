@@ -3,6 +3,7 @@ import { projects as mockProjects } from "@/lib/mock-data";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createServiceClient } from "@/lib/db/client";
+import { resolveProject } from "@/lib/projects/resolve";
 import { getProjectDisplay } from "@/lib/display";
 
 export function generateStaticParams() {
@@ -20,21 +21,21 @@ export default async function CompletePage({ params }: { params: Promise<{ id: s
     emoji = mockProject.emoji;
     title = mockProject.title;
   } else {
-    // DB fallback for UUID project IDs
+    // DB fallback for UUID or slug project identifiers. A malformed
+    // identifier is treated as not-found; a genuine DB/config failure
+    // propagates instead of silently rendering 404 (see F7).
+    let project: { title: string; slug: string } | null;
     try {
       const db = createServiceClient();
-      const { data: project } = await db
-        .from('projects')
-        .select('title, slug')
-        .or(`id.eq.${id},slug.eq.${id}`)
-        .single();
-
-      if (!project) return notFound();
-      title = project.title;
-      emoji = getProjectDisplay(project.slug).emoji;
-    } catch {
-      return notFound();
+      project = await resolveProject<{ title: string; slug: string }>(db, id, 'title, slug');
+    } catch (err) {
+      if (err instanceof Error && err.message.startsWith('Invalid project identifier')) return notFound();
+      throw err;
     }
+
+    if (!project) return notFound();
+    title = project.title;
+    emoji = getProjectDisplay(project.slug).emoji;
   }
 
   const confettiDots = [

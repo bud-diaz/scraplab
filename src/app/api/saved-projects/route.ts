@@ -3,9 +3,10 @@ import { z } from 'zod'
 import { createServiceClient } from '@/lib/db/client'
 import { requireAuth } from '@/lib/db/auth'
 import { getUserPlan, isWithinLimit } from '@/lib/access'
+import { uuidSchema } from '@/lib/validation/identifiers'
 
 const postSchema = z.object({
-  projectId: z.string().uuid(),
+  projectId: uuidSchema,
 })
 
 export async function GET(request: NextRequest) {

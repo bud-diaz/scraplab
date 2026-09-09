@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServiceClient } from '@/lib/db/client'
 import { requireAuth } from '@/lib/db/auth'
+import { uuidSchema } from '@/lib/validation/identifiers'
 
 const postSchema = z.object({
-  projectId: z.string().uuid(),
-  childProfileId: z.string().uuid().optional(),
+  projectId: uuidSchema,
+  childProfileId: uuidSchema.optional(),
 })
 
 export async function GET(request: NextRequest) {

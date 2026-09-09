@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServiceClient } from '@/lib/db/client'
 import { requireAuth } from '@/lib/db/auth'
+import { uuidSchema } from '@/lib/validation/identifiers'
 
 const postSchema = z.object({
-  materialId: z.string().uuid(),
+  materialId: uuidSchema,
   source: z.enum(['manual', 'detected', 'saved']).default('manual'),
   stapleFlag: z.boolean().default(false),
   confidenceScore: z.number().min(0).max(1).optional(),
