@@ -8,7 +8,7 @@
   html, body {
     margin: 0;
     height: 100%;
-    background: #FFF8ED;
+    background: #F8F3EA;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -45,19 +45,38 @@
   <div class="wrap">
     <div class="spinner"></div>
     <p id="status">Connecting to ScrapLab…</p>
-    <button id="retry" style="display:none" onclick="window.location.href='scraplab-retry://reload'">Retry</button>
+    <button id="retry" style="display:none">Retry</button>
   </div>
   <script>
-    // If this local fallback page is ever visible for more than a couple of
-    // seconds, the app failed to reach the remote server.url — surface a
-    // manual retry rather than leaving a spinner running forever. The native
-    // WKNavigationDelegate is the primary mechanism that lands the app back
-    // here on a real load failure (see ios/App/App/AppDelegate.swift), this
-    // is just the last-resort UI for that state.
+    // Keep in sync with PRODUCTION_URL in capacitor.config.ts.
+    var PRODUCTION_URL = 'https://scraplab-inky.vercel.app/';
+
+    // Capacitor lands here via server.errorPath when a navigation to
+    // server.url fails (offline, DNS failure, cold start timeout, 5xx). The
+    // native bridge is injected on this origin too, so dismiss the launch
+    // splash ourselves rather than leaving it over an error page the user
+    // can't tap. Capacitor.Plugins is empty here — it's populated by
+    // registerPlugin() in the web bundle, which this standalone page doesn't
+    // load — so go through the bridge's low-level call instead.
+    try {
+      window.Capacitor.nativePromise('SplashScreen', 'hide', {}).catch(function () {});
+    } catch (e) {
+      // Not running inside the native shell.
+    }
+
+    document.getElementById('retry').addEventListener('click', function () {
+      // A plain reload would just reload this local page. Navigate at the real
+      // app instead — the host is in allowNavigation, so it stays in-webview.
+      window.location.replace(PRODUCTION_URL);
+    });
+
+    // We only get here after a load has already failed, so there's nothing
+    // left to wait on — just long enough to avoid a flash of "Could not
+    // reach ScrapLab" when a retry succeeds immediately.
     setTimeout(function () {
       document.getElementById('status').textContent = 'Could not reach ScrapLab.';
       document.getElementById('retry').style.display = 'inline-block';
-    }, 6000);
+    }, 1500);
   </script>
 </body>
 </html>
