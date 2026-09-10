@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "ScrapLab",
+    "slug": "scraplab",
+    "version": "1.0.0",
+    "ios": {
+      "bundleIdentifier": "com.scraplab.app",
+      "buildNumber": "1"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      }
+    }
+  }
+}

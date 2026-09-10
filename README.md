@@ -242,6 +242,30 @@ purchases through Apple via RevenueCat (`api/webhooks/revenuecat`,
 guarded by `profiles.plan_source` so the two webhooks can't clobber each
 other's grant for the same user (see `supabase/migrations/007_ios_iap.sql`).
 
+### Releasing
+
+The `Release iOS (EAS build + submit)` GitHub Actions workflow
+(`.github/workflows/release-ios.yml`, manually triggered from the Actions
+tab) builds the production `ios/App` project via
+[EAS Build](https://docs.expo.dev/build/introduction/) and submits it to
+App Store Connect. It's driven by `app.json` / `eas.json` /
+`credentials.json` at the repo root, using locally-supplied signing
+credentials rather than EAS-managed ones. One-time setup before the first
+run:
+
+1. Create/sign in to an Expo account, run `eas init` against this repo, and
+   paste the resulting project ID into `app.json`'s `expo.extra.eas.projectId`.
+2. Generate an Expo access token and add it as the `EXPO_TOKEN` repo secret.
+3. Export an Apple Distribution certificate (`.p12`) and an App Store
+   provisioning profile for `com.scraplab.app`, base64-encode both, and add
+   them as the `IOS_DIST_CERTIFICATE_BASE64` / `IOS_DIST_P12_PASSWORD` /
+   `IOS_PROVISIONING_PROFILE_BASE64` repo secrets.
+4. Create an App Store Connect API key, base64-encode the `.p8`, and add
+   `ASC_API_KEY_BASE64` / `ASC_API_KEY_ID` / `ASC_API_ISSUER_ID`.
+5. Make sure `com.scraplab.app` already exists as an app in App Store
+   Connect — submission uploads to an existing app record, it doesn't
+   create the listing.
+
 ## Project Structure
 
 ```
