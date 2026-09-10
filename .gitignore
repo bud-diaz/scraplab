@@ -149,3 +149,7 @@ vite.config.ts.timestamp-*
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# iOS signing material decoded at CI time by .github/workflows/release-ios.yml
+# (see credentials.json) — never committed.
+/ios_credentials/
