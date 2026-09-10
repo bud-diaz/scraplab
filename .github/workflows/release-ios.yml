@@ -1,0 +1,60 @@
+name: Release iOS (EAS build + submit)
+
+# Manual only — this builds a production, store-bound binary and submits it
+# to App Store Connect. Never wire this to run automatically on push.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build-and-submit:
+    runs-on: ubuntu-latest
+    # The native iOS build itself runs on Expo's macOS build servers, not on
+    # this runner — eas-cli here just uploads sources/credentials and polls
+    # for the result, so a plain Linux runner is enough.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install eas-cli
+        run: npm install --global eas-cli
+
+      - name: Decode iOS signing credentials
+        run: |
+          set -euo pipefail
+          mkdir -p ios_credentials
+          echo "$IOS_DIST_CERTIFICATE_BASE64" | base64 --decode > ios_credentials/distribution.p12
+          echo "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > ios_credentials/distribution.mobileprovision
+          echo "$ASC_API_KEY_BASE64" | base64 --decode > ios_credentials/asc-api-key.p8
+        env:
+          IOS_DIST_CERTIFICATE_BASE64: ${{ secrets.IOS_DIST_CERTIFICATE_BASE64 }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          ASC_API_KEY_BASE64: ${{ secrets.ASC_API_KEY_BASE64 }}
+
+      # credentials.json (committed) references ios_credentials/*.p12 /
+      # *.mobileprovision by path, and the .p12 password by this env var.
+      - name: EAS production build (iOS)
+        run: eas build --platform ios --profile production --non-interactive --wait
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          IOS_DIST_P12_PASSWORD: ${{ secrets.IOS_DIST_P12_PASSWORD }}
+
+      - name: Submit latest build to App Store Connect
+        run: |
+          eas submit --platform ios --profile production --latest --non-interactive \
+            --asc-api-key-path ios_credentials/asc-api-key.p8 \
+            --asc-api-key-id "$ASC_API_KEY_ID" \
+            --asc-api-key-issuer-id "$ASC_API_ISSUER_ID"
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+
+      - name: Clean up decoded credentials
+        if: always()
+        run: rm -rf ios_credentials

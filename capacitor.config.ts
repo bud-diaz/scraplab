@@ -42,6 +42,7 @@ const config: CapacitorConfig = {
       // Hidden manually once the remote page has hydrated — see
       // src/components/native/NativeBootstrap.tsx.
       launchAutoHide: false,
+      backgroundColor: '#F8F3EA',
     },
   },
 };
