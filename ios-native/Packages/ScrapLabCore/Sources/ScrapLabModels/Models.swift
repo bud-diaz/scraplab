@@ -261,6 +261,10 @@ public struct ChildProfilesResponse: Codable, Equatable, Sendable { public let c
 public struct ChildProfileResponse: Codable, Equatable, Sendable { public let childProfile: ChildProfile }
 public struct MaterialsResponse: Codable, Equatable, Sendable { public let grouped: [String: [Material]]?; public let materials: [Material] }
 public struct MysteryMaterialsResponse: Codable, Equatable, Sendable { public let materials: [MysteryMaterial] }
+/// `POST /api/me/sync-revenuecat` never trusts the client's purchase result — it re-checks
+/// entitlement status against RevenueCat's own API server-side and returns the plan that
+/// resulted, which may not be "plus" even after a client-reported successful purchase.
+public struct SyncRevenueCatResponse: Codable, Equatable, Sendable { public let plan: Plan }
 
 public enum ModelCoding {
     public static func decoder() -> JSONDecoder {

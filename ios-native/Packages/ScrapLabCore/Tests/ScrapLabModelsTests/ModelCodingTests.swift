@@ -45,6 +45,12 @@ func activitySupervisionLabelsNormalizeConservatively(raw: String, expected: Sup
     #expect(access.limits.savedProjects == nil)
 }
 
+@Test func syncRevenueCatResponseDecodesServerReconciledPlan() throws {
+    let json = #"{"plan":"free"}"#.data(using: .utf8)!
+    let response = try ModelCoding.decoder().decode(SyncRevenueCatResponse.self, from: json)
+    #expect(response.plan == .free)
+}
+
 @Test func mutatingEndpointRequestsEncodeBackendCamelCaseBodies() throws {
     let projectId = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
     let childId = UUID(uuidString: "22222222-2222-2222-2222-222222222222")!

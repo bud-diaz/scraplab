@@ -14,7 +14,7 @@ enum CreateRoute: Hashable {
 }
 enum BuildLogRoute: Hashable { case project(UUID), build(UUID), complete(projectId: UUID) }
 enum BrowseRoute: Hashable { case explore(String), project(UUID) }
-enum ProfileRoute: Hashable { case settings }
+enum ProfileRoute: Hashable { case subscription, mysteryBuild, challenges, privacyPolicy }
 enum AppSheet: Identifiable, Equatable {
     case signIn, upgrade, authCallback
     var id: Self { self }

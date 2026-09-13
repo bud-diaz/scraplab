@@ -106,13 +106,22 @@ struct RootTabView: View {
         NavigationStack(path: $router.profilePath) {
             Group {
                 if session.isAuthenticated {
-                    PlaceholderDestination(title: "Profile", message: "Profile settings are not connected yet.")
+                    ProfileView(baseURL: AppEnvironment.apiBaseURL, session: session, entitlements: entitlements, router: router)
                 } else {
                     GuestSignInNudge(title: "Profile", message: "Sign in to manage your household and plan.") { router.presentedSheet = .signIn }
                 }
             }
-            .navigationDestination(for: ProfileRoute.self) { _ in
-                PlaceholderDestination(title: "Settings", message: "Settings are not connected yet.")
+            .navigationDestination(for: ProfileRoute.self) { route in
+                switch route {
+                case .subscription:
+                    SubscriptionView(baseURL: AppEnvironment.apiBaseURL, session: session, entitlements: entitlements)
+                case .mysteryBuild:
+                    MysteryBuildView(baseURL: AppEnvironment.apiBaseURL, session: session, router: router)
+                case .challenges:
+                    ChallengesView(router: router)
+                case .privacyPolicy:
+                    PrivacyPolicyView()
+                }
             }
         }
     }
@@ -123,8 +132,10 @@ struct RootTabView: View {
             case .signIn:
                 SLEmptyState(title: "Sign in", message: "Authentication is ready for a Supabase adapter; no session is simulated.", systemImage: "person.crop.circle", actionTitle: "Not now") { router.cancelAuthentication() }
             case .upgrade:
-                UpgradeCard(title: "ScrapLab Plus", message: "Purchases will be connected through the entitlements boundary.") { router.presentedSheet = nil }
-                    .padding()
+                SubscriptionView(baseURL: AppEnvironment.apiBaseURL, session: session, entitlements: entitlements)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) { Button("Close") { router.presentedSheet = nil } }
+                    }
             case .authCallback:
                 SLEmptyState(title: "Confirming account", message: "The callback was received. Supabase session exchange will be connected next.", systemImage: "envelope.badge")
             }

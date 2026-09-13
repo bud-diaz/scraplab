@@ -4,6 +4,74 @@ Tracking file for work against [`NATIVE_IOS_REWRITE_PLAN.md`](./NATIVE_IOS_REWRI
 
 _Last updated: 2026-09-13 (continued session) on `feat/native-ios-foundation`._
 
+## 2026-09-13 Profile and billing — Phase 6 SwiftUI slice
+
+Same research-before-writing approach as Phases 4 and 5: had an Explore agent read
+`src/app/profile/page.tsx` and its sub-components, `src/app/subscription/page.tsx`,
+`src/lib/native/purchases.ts`, `src/app/build/mystery/page.tsx`, `src/app/challenges/page.tsx`,
+and the delete-account/child-profiles/household-inventory route handlers directly, rather
+than working from the plan doc's one-paragraph summary. Two real findings shaped this
+slice:
+
+- **RevenueCat cannot be wired for real from this environment.** Adding the `RevenueCat`
+  SPM package needs Xcode-driven network dependency resolution this sandbox doesn't have,
+  the SDK is Apple-platform-only so it can't join the Linux-testable `ScrapLabCore`
+  package, and using it for anything real needs an App Store Connect subscription product
+  plus a RevenueCat dashboard entitlement — none of which exist yet. Built the same kind
+  of boundary Phase 1 used for the still-unconfigured Supabase auth adapter:
+  `PurchaseServicing` protocol + `UnconfiguredPurchaseService`, with `SubscriptionStore`
+  written and structured against that protocol so swapping in the real SDK later is a
+  one-file change with no call-site edits. Also wired the plan's explicit RevenueCat
+  identity-bug fix at the call-site level — `ScrapLabApp` now calls
+  `purchaseService.configure(appUserID:)` on every sign-in and `.logOut()` on every
+  sign-out — even though the underlying implementation is a documented no-op today.
+- **"Challenges" has no backend on the web either** — it's a hardcoded 4-item array there
+  too, and only "Mystery Build" and "Minimal Materials Mode" actually link anywhere. Ported
+  that honestly (a static list with two live entries and two "Coming Soon" locks) instead
+  of inventing a challenges API that doesn't exist on either platform.
+
+Also ported the real `src/app/privacy/page.tsx` copy verbatim into a static
+`PrivacyPolicyView` — this is legal text, not something to paraphrase or summarize.
+
+Pure logic: nothing new needed in `ScrapLabCore` beyond one response type
+(`SyncRevenueCatResponse`) — `OnboardingChildProfileBuilder` (child-age validation),
+`CreateAge.pickerRange` (mystery build's age control), and `EntitlementFeature.householdStaples`/`.mysteryBuild`
+already existed from earlier Linux-safe slices and covered everything this phase needed.
+That's the earlier groundwork paying off rather than a gap.
+
+SwiftUI screens added under `ios-native/App/Features/Profile/` (macOS/Xcode-unverified):
+
+- `ProfileView`: header (email, plan badge linking to Subscription), Kids CRUD, a Plus-gated Staples section (free users see an `UpgradeCard` instead, matching the web exactly), nav links to Subscription/Challenges/Privacy Policy, delete account, sign out.
+- `ChildProfilesStore` + `KidsSectionView` (+ inline `ChildProfileFormView` sheet for add/edit/remove): reuses the existing `OnboardingChildProfileBuilder` for validation instead of duplicating it, surfaces the 429 child-profile-limit response distinctly from a generic failure.
+- `HouseholdStaplesStore` + `StaplesSectionView`: toggling a staple re-POSTs the upsert endpoint with the flipped flag rather than tracking the inventory row's own id, matching `StaplesSection` exactly; an "Add Staple" sheet lists materials not yet tracked.
+- `DeleteAccountSectionView`: inline confirm-in-place (no modal, no typed confirmation), an Apple-specific cancellation note for Plus users since native never touches Stripe, calls `session.signOut()` on success rather than any extra route (the guest nudges across every tab already react to that automatically).
+- `SubscriptionStore` + `SubscriptionView`: free-vs-Plus states, feature list, purchase/restore/manage actions all routed through `PurchaseServicing`, followed by `POST /api/me/sync-revenuecat` (which never trusts the client's purchase result — always re-verifies against RevenueCat server-side). Also now backs the `.upgrade` sheet that several existing `UpgradeCard` buttons already opened.
+- `MysteryBuildStore` + `MysteryBuildView`: `GET /api/mystery-materials`, re-roll, an age stepper, "Find Builds" — reuses `CreateRoute.results` exactly like the manual picker and scan flow do.
+- `ChallengesView`, `PrivacyPolicyView`: static, as described above.
+- Real bug avoided by checking early (same class as Phases 4–5's cross-tab-path bugs): an early draft of `MysteryBuildView`'s "Find Builds" button used `NavigationLink(value: CreateRoute...)` inside Profile's own `[ProfileRoute]`-typed stack, which would have silently done nothing. Fixed by using a plain `Button` that switches tabs and replaces `createPath` directly, matching the pattern `RootTabView.startBuild` already established.
+- Redefined `ProfileRoute` from an unused placeholder (`.settings`) to real cases (`.subscription`, `.mysteryBuild`, `.challenges`, `.privacyPolicy`) and wired all four into `RootTabView`'s Profile tab, replacing its last placeholder. Every tab in the app now shows real content — Phases 1–6 of the plan are code-complete pending macOS verification.
+
+Verification from Linux:
+
+| Command/check | Result |
+| --- | --- |
+| `docker run --rm -v "$PWD/ios-native/Packages/ScrapLabCore:/workspace:ro" -w /workspace swift:6.0-noble swift test --scratch-path /tmp/scraplab-build` | Passed: 71 Swift tests (up from 70) |
+| `swift -frontend -parse` over every file in `ios-native/App` (69 files, up from 56) | Passed — syntax only |
+| `NODE_ENV=test npm test` | Passed: 17 files / 161 tests |
+| `npm run lint` | Passed: 0 errors, 1 pre-existing custom-font warning |
+| `npx tsc --noEmit` | Passed |
+| `make validate` in `ios-native/` | Passed: YAML, plist, privacy manifest, asset JSON |
+| `git diff --check` | Passed |
+| Manual grep guard: no `checkout`/`billing/portal` references, no obvious secrets, no `fatalError`/`try!` in `ios-native/App` | Passed |
+
+**Mac-side work required, in addition to the Phase 3/4/5 lists above:**
+
+1. Everything below the standing "Linux can't type-check SwiftUI" caveat applies here too — 13 new App-target files, none compiled yet.
+2. **Wiring real billing is its own project, not a checkbox**: create the RevenueCat account and dashboard entitlement, create the auto-renewable subscription product in App Store Connect, add the `RevenueCat` SPM package to `project.yml`, implement a real `PurchaseServicing` adapter around `Purchases.shared`, and test at least one purchase and one restore in the StoreKit sandbox before this phase is actually demoable — none of that can start until this branch is on a Mac with an Apple Developer account attached.
+3. Confirm the Kids CRUD age `Picker` with `.pickerStyle(.wheel)` inside a `Form` renders sanely (wheel pickers inside forms can look cramped) and that the inline "Remove {name}? Yes/No" confirmation reads clearly at real size.
+4. Confirm `DeleteAccountSectionView`'s flow end to end on a real (test) account: delete, confirm `session.signOut()` fires, confirm every tab reactively falls back to its guest state without a relaunch.
+5. Confirm `PrivacyPolicyView`'s Markdown-via-`LocalizedStringKey` bold rendering actually renders `**text**` as bold rather than showing literal asterisks — this is the one place this session used that technique instead of a plain `Text`.
+
 ## 2026-09-13 Build and library — Phase 5 SwiftUI slice
 
 Before writing any UI, had an Explore agent read the actual web pages
@@ -318,6 +386,7 @@ The macOS blocker is resolved. Verified on the project's Hackintosh build host (
 | Browse tab (Phase 3) | First slice written, Mac-unverified | List/search/filter + activity/project detail screens exist under `App/Features/Browse/`; needs `xcodegen generate` + a real build before it counts as working |
 | Create tab (Phase 4) | First slice written, Mac-unverified | Method picker, manual picker, results, and scan screens exist under `App/Features/Create/`; highest-risk surface so far (PhotosPicker/UIImagePickerController/UIImage JPEG encoding), zero Xcode verification |
 | Build/Library/Home (Phase 5) | First slice written, Mac-unverified | `App/Features/Build/`, `Features/Library/`, `Features/Home/` — 17 new files, largest untested batch yet; Home tab and Build Log tab both replaced their Phase 1 placeholders entirely |
+| Profile/billing (Phase 6) | First slice written, Mac-unverified; billing is a stub boundary | `App/Features/Profile/` — 13 new files. Every tab in the app now shows real content instead of a placeholder. RevenueCat is a documented no-op (`UnconfiguredPurchaseService`) pending App Store Connect + RevenueCat dashboard setup that can only happen on a Mac with an Apple Developer account |
 | API contract scanner | Implemented | Web + Swift endpoints checked against Next.js routes |
 | CI | Added | Path-filtered macOS workflow, pending real GitHub/macOS run |
 | macOS/Xcode | Unblocked for device workflow, but stale | Phase 1's build/sign/install/launch/test all worked on physical device; that verification predates every Browse/detail file below and must be rerun |
@@ -628,23 +697,29 @@ Left:
 
 ### Phase 6 — Profile and billing
 
-Status: **Not started beyond endpoint/model/entitlement groundwork**.
+Status: **First SwiftUI slice written on Linux; zero minutes of macOS/Xcode verification so far.** Billing specifically is also blocked on real-world setup (App Store Connect + RevenueCat dashboard) that has to happen before the boundary below can be implemented for real — see the "Mac-side work required" note in the 2026-09-13 Profile-and-billing entry above.
+
+Done (Linux-authored only; billing is client-side plumbing against a documented no-op boundary, not a working purchase flow):
+
+- [x] Profile header (`ProfileView`)
+- [x] Kids CRUD (`ChildProfilesStore` + `KidsSectionView`)
+- [x] Household staples/profile inventory UI (`HouseholdStaplesStore` + `StaplesSectionView`)
+- [x] Delete account flow (`DeleteAccountSectionView`)
+- [x] RevenueCat SDK integration — **boundary only**: `PurchaseServicing` protocol + `UnconfiguredPurchaseService`; the real `RevenueCat` SPM package is not added and cannot be from this environment (see above)
+- [x] `Purchases.logIn(supabaseUserId)` on every sign-in — call site wired in `ScrapLabApp` (`purchaseService.configure(appUserID:)`), no-ops against the unconfigured boundary today
+- [x] RevenueCat logout on sign-out — call site wired (`purchaseService.logOut()`), same caveat
+- [x] Purchase Plus (`SubscriptionStore.purchase()`, boundary-backed)
+- [x] Restore purchases (`SubscriptionStore.restore()`, boundary-backed)
+- [x] `POST /api/me/sync-revenuecat` (real network call, only the purchase result feeding it is stubbed)
+- [x] Apple's subscription management URL (`SubscriptionStore.openManagement()`, boundary-backed)
+- [x] Build mystery and challenges (`MysteryBuildStore`/`MysteryBuildView`, `ChallengesView`)
+- [x] Static privacy policy view (`PrivacyPolicyView`, ported verbatim from `src/app/privacy/page.tsx`)
 
 Left:
 
-- [ ] Profile header
-- [ ] Kids CRUD
-- [ ] Household staples/profile inventory UI
-- [ ] Delete account flow
-- [ ] RevenueCat SDK integration
-- [ ] `Purchases.logIn(supabaseUserId)` on every sign-in
-- [ ] RevenueCat logout on sign-out
-- [ ] Purchase Plus
-- [ ] Restore purchases
-- [ ] `POST /api/me/sync-revenuecat`
-- [ ] Apple's subscription management URL
-- [ ] Build mystery and challenges
-- [ ] Static privacy policy view
+- [ ] Everything above needs `xcodegen generate` + a real macOS build/test/device-launch pass before it counts as done.
+- [ ] The actual RevenueCat integration: App Store Connect subscription product, RevenueCat dashboard entitlement, the SPM package dependency, and a real `PurchaseServicing` adapter — this is real-world account/business setup, not something further Linux-side code can produce.
+- [ ] StoreKit sandbox testing of one purchase and one restore, once the above exists.
 
 ### Phase 7 — Submission and cutover
 
