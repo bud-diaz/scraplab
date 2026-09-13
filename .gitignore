@@ -153,3 +153,15 @@ vite.config.ts.timestamp-*
 # iOS signing material decoded at CI time by .github/workflows/release-ios.yml
 # (see credentials.json) — never committed.
 /ios_credentials/
+
+# Generated native iOS/Xcode output
+/ios-native/*.xcodeproj/
+/ios-native/*.xcworkspace/
+/ios-native/DerivedData/
+/ios-native/build/
+/ios-native/.build/
+/ios-native/Packages/ScrapLabCore/.build/
+/ios-native/fastlane/report.xml
+/ios-native/fastlane/Preview.html
+/ios-native/fastlane/screenshots/
+/ios-native/fastlane/test_output/

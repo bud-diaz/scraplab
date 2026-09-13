@@ -1,0 +1,73 @@
+name: Native iOS CI
+
+on:
+  push:
+    paths:
+      - "ios-native/**"
+      - ".github/workflows/ios-ci.yml"
+  pull_request:
+    paths:
+      - "ios-native/**"
+      - ".github/workflows/ios-ci.yml"
+
+jobs:
+  test:
+    runs-on: macos-15
+    env:
+      XCODEGEN_VERSION: 2.46.0
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+    defaults:
+      run:
+        working-directory: ios-native
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 26.3
+        run: xcodebuild -version
+
+      - name: Reject web billing endpoints in native code
+        working-directory: ${{ github.workspace }}
+        run: |
+          if grep -R --line-number --extended-regexp 'api/checkout|billing/portal' ios-native; then
+            echo "Stripe checkout and billing portal endpoints must not be reachable from the native app."
+            exit 1
+          fi
+
+      - name: Install pinned XcodeGen
+        run: |
+          curl --fail --silent --show-error --location \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip" \
+            --output "${RUNNER_TEMP}/xcodegen.zip"
+          unzip -q "${RUNNER_TEMP}/xcodegen.zip" -d "${RUNNER_TEMP}"
+          echo "${RUNNER_TEMP}/xcodegen/bin" >> "${GITHUB_PATH}"
+          "${RUNNER_TEMP}/xcodegen/bin/xcodegen" --version
+
+      - name: Cache Swift Package Manager artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios-native/Packages/ScrapLabCore/.build
+            ~/Library/Caches/org.swift.swiftpm
+          key: ${{ runner.os }}-xcode-26.3-spm-${{ hashFiles('ios-native/**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-xcode-26.3-spm-
+
+      - name: Resolve Swift package dependencies
+        working-directory: ios-native/Packages/ScrapLabCore
+        run: swift package resolve
+
+      - name: Generate Xcode project
+        run: xcodegen generate --spec project.yml
+
+      - name: Run Swift package tests
+        working-directory: ios-native/Packages/ScrapLabCore
+        run: swift test
+
+      - name: Run app tests
+        run: |
+          xcodebuild test \
+            -project ScrapLab.xcodeproj \
+            -scheme ScrapLab \
+            -destination 'platform=iOS Simulator,OS=latest,name=iPhone 16' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO

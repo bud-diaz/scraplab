@@ -1,0 +1,15 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Build the native ScrapLab app for CI validation"
+  lane :build do
+    sh("xcodegen generate --spec project.yml")
+    build_app(
+      project: "ScrapLab.xcodeproj",
+      scheme: "ScrapLab",
+      clean: true,
+      skip_codesigning: true,
+      skip_archive: true
+    )
+  end
+end

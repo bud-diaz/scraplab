@@ -16,6 +16,39 @@ This plan replaces the iOS client with a native SwiftUI app while keeping everyt
 
 **Outcome:** a real iOS app, built and shipped from this repo, calling the same API the web client calls today.
 
+## Implementation status — 2026-09-11
+
+The rewrite is now underway additively on `feat/native-ios-foundation`. The existing Capacitor app under `ios/` remains untouched and remains the shipping fallback.
+
+### Implemented in this foundation slice
+
+- Added `ios-native/` with an iOS 17 XcodeGen project, Debug/Release xcconfigs, generated-project Makefile, Fastlane build lane, launch/privacy metadata, the existing branded 1024 px app icon, and bundled OFL-licensed Baloo 2 and Inter variable fonts.
+- Added the five-tab SwiftUI shell with independent typed navigation paths, guest-safe Browse/Create behavior, sign-in nudges for protected tabs, modal presentation, custom-scheme deep-link parsing, pending-link replay after authentication, and app-level session/entitlement state boundaries.
+- Added the translated design foundation and reusable atoms: color, spacing/radius, shadows, typography with tabular OpenType figures, four button variants, chips, supervision badges, empty states, and upgrade cards. Atom previews are included.
+- Added `ScrapLabCore`, a Linux-testable Swift 6 package with dependency-free Codable models, centralized app-consumable endpoints, bearer-token API transport, typed plan-gate/limit/offline/decoding HTTP errors, snake-case/date decoding, camel-case request encoding, and multipart form data.
+- Added a real `GET /api/me/access` loader and a debug foundation screen. Authentication is intentionally represented by an adapter boundary in this slice; the Supabase adapter and user-facing sign-in/sign-up UI remain Phase 2 work rather than a fake session.
+- Extended the existing TypeScript endpoint contract scanner to include native Swift endpoint declarations, normalize interpolated path segments, ignore generated build directories, and verify every native method/path against the 24 Next.js route files.
+- Added path-filtered macOS CI pinned to Xcode 26.3, pinned XcodeGen, SwiftPM caching/tests, generated-project app tests, and a mechanical rejection guard for Stripe checkout/portal references in native code.
+- Added native deep-link tests and Swift package coverage for coding, endpoint declarations, auth headers, error-body preservation, multipart framing, supervision normalization, and nullable unlimited access limits.
+
+### Verified on Linux
+
+- `docker run --rm -v "$PWD/ios-native/Packages/ScrapLabCore:/workspace:ro" -w /workspace swift:6.0-noble swift test --scratch-path /tmp/scraplab-build` — **15 Swift tests passed**.
+- Swift 6 parser check over all 26 native `.swift` files — **passed**.
+- `make validate` in `ios-native/` — **XcodeGen YAML, Info.plist, PrivacyInfo.xcprivacy, and all asset catalogs passed structural validation**.
+- `NODE_ENV=test npm test` — **17 files and 157 tests passed**, including native endpoint contract coverage.
+- `npm run lint` — **0 errors**; one pre-existing Next.js custom-font warning remains in `src/app/layout.tsx`.
+- `npx tsc --noEmit` — **passed**.
+- `npm run build` — **passed**, generating all 48 app routes/pages.
+
+A reachable macOS 15.7.9 build host reports Xcode 26.3 at `/Applications/Xcode.app`, but every `xcodebuild` invocation hangs before returning version or first-launch status. The native app has therefore been syntax-checked and package-tested, but **not yet type-checked or launched by Xcode**. Resolve the host's Xcode first-launch/license state, then run `make test` from `ios-native/` before treating this as a device-ready Phase 1 build.
+
+### Still required before parity or cutover
+
+- Complete Phase 2 authentication/onboarding using `supabase-swift`; replace the unconfigured session adapter and manual debug-token field.
+- Implement the real Browse/detail, Create/scan, Build/Library/Home, Profile/RevenueCat, offline/outbox, accessibility, UI smoke-test, App Store compliance, TestFlight, and seven-day soak work in Phases 3–7.
+- Keep `ios/`, Capacitor, EAS, and the current release workflow until those phases are complete and the explicit cutover criteria below are met.
+
 ## What changes and what does not
 
 | Area | Decision |

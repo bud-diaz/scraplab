@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
 export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const
@@ -11,8 +11,12 @@ export interface FrontendFetch {
   method: HttpMethod
 }
 
+const IGNORED_DIRECTORIES = new Set(['.build', '.git', '.next', 'DerivedData', 'node_modules'])
+
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
+    if (IGNORED_DIRECTORIES.has(entry)) continue
+
     const full = join(dir, entry)
     const stat = statSync(full)
     if (stat.isDirectory()) walk(full, out)
@@ -75,6 +79,52 @@ export function scanFrontendFetches(roots: string[]): FrontendFetch[] {
         const line = source.slice(0, match.index).split('\n').length
         results.push({ file, line, path, method })
       }
+    }
+  }
+  return results
+}
+
+const SWIFT_API_PATH = /"(\/api\/(?:\\.|[^"\\])*)"/g
+const SWIFT_HTTP_METHOD = /(?:httpMethod|method)\s*:\s*(?:HttpMethod\s*\.\s*|\.\s*)?(GET|POST|PUT|PATCH|DELETE)\b/gi
+
+/** Scans Swift sources for `/api/...` literals paired with a nearby HTTP method.
+ * Swift string interpolations are normalized to the `${...}` form understood by
+ * `pathsMatch`, so native endpoints use the same route contract as web fetches. */
+export function scanSwiftEndpoints(root: string): FrontendFetch[] {
+  if (!existsSync(root)) return []
+
+  const results: FrontendFetch[] = []
+  const files = walk(root).filter(
+    (file) => file.endsWith('.swift') && !file.replace(/\\/g, '/').includes('/Tests/'),
+  )
+  for (const file of files) {
+    const source = readFileSync(file, 'utf8')
+    let pathMatch: RegExpExecArray | null
+    SWIFT_API_PATH.lastIndex = 0
+    while ((pathMatch = SWIFT_API_PATH.exec(source))) {
+      const windowStart = Math.max(0, pathMatch.index - 300)
+      const windowEnd = Math.min(source.length, pathMatch.index + pathMatch[0].length + 300)
+      const nearbySource = source.slice(windowStart, windowEnd)
+      const pathOffset = pathMatch.index - windowStart
+      let nearestMethod: { method: HttpMethod; distance: number } | null = null
+      let methodMatch: RegExpExecArray | null
+      SWIFT_HTTP_METHOD.lastIndex = 0
+      while ((methodMatch = SWIFT_HTTP_METHOD.exec(nearbySource))) {
+        const distance = Math.abs(methodMatch.index - pathOffset)
+        if (!nearestMethod || distance < nearestMethod.distance) {
+          nearestMethod = {
+            method: methodMatch[1].toUpperCase() as HttpMethod,
+            distance,
+          }
+        }
+      }
+      if (!nearestMethod) continue
+
+      const path = pathMatch[1]
+        .replace(/\\\(([^)]*)\)/g, '${$1}')
+        .split('?')[0]
+      const line = source.slice(0, pathMatch.index).split('\n').length
+      results.push({ file, line, path, method: nearestMethod.method })
     }
   }
   return results
