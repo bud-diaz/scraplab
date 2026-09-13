@@ -2,7 +2,7 @@ import ScrapLabModels
 import SwiftUI
 
 struct ManualMaterialPickerView: View {
-    @Bindable var store: ManualMaterialPickerStore
+    @State private var store: ManualMaterialPickerStore
 
     init(baseURL: URL) {
         _store = State(initialValue: ManualMaterialPickerStore(baseURL: baseURL))

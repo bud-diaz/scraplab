@@ -41,7 +41,7 @@ struct BrowseFilterSheet: View {
     }
 
     @ViewBuilder
-    private func chipRow<T: Hashable>(_ options: [T], selection: Binding<T?>, label: (T) -> String) -> some View {
+    private func chipRow<T: Hashable>(_ options: [T], selection: Binding<T?>, label: @escaping (T) -> String) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: SLSpacing.x2) {
                 ForEach(options, id: \.self) { option in
