@@ -4,6 +4,68 @@ Tracking file for work against [`NATIVE_IOS_REWRITE_PLAN.md`](./NATIVE_IOS_REWRI
 
 _Last updated: 2026-09-13 (continued session) on `feat/native-ios-foundation`._
 
+## 2026-09-13 First macOS/device verification pass (Phases 1–6)
+
+First time any of this branch's Swift code has actually compiled on macOS or run on a
+device. Synced the branch from the Linux control machine to the Hackintosh's Mac (git
+push/fetch, not a destructive rsync — the Mac's `~/scraplab` checkout was stale and had
+a pile of already-merged-elsewhere dirty state, safely stashed rather than discarded),
+then ran the ordered Mac-side checklist this file has been asking for since Phase 3.
+
+Two rounds of real macOS-only compile errors turned up, exactly as flagged as a risk
+in every phase's "Left" list — none of them were visible to Linux `swift test` because
+that suite never imports SwiftUI:
+
+- `Material` (the `ScrapLabModels` craft-material type) is ambiguous against
+  `SwiftUI.Material` (the blur/glass-material type) anywhere a View file imports both.
+  Hit in `ManualMaterialPickerView`, `MaterialTileView`, and `StaplesSectionView`.
+  Fixed by qualifying the model type as `ScrapLabModels.Material` at each call site
+  (commit `6075815`).
+- `ManualMaterialPickerView` declared its self-owned store as `@Bindable var store`
+  but initialized it with `_store = State(initialValue:)` — wrong backing-storage type
+  for `@Bindable`. Every other screen in the app already used the correct pattern
+  (`@State private var store` for a store the view constructs itself, `@Bindable` only
+  for a store/object passed in from outside); this was the one file that got it wrong.
+  Also, `BrowseFilterSheet.chipRow`'s `label` closure needed `@escaping` since it's
+  invoked from inside a `ForEach` content builder. Fixed in commit `3ca59b9`.
+
+Verified on macOS (Xcode 26.3, this Hackintosh's Mac):
+
+| Command/check | Result |
+| --- | --- |
+| `xcodegen generate` in `ios-native/` | Regenerated `ScrapLab.xcodeproj` clean |
+| `swift test` in `ios-native/Packages/ScrapLabCore` | Passed: 71/71 (matches Linux exactly) |
+| `xcodebuild build` — Debug, iPhone 17 Simulator | **BUILD SUCCEEDED** after the two fixes above |
+| `xcodebuild build` — Debug, `generic/platform=iOS` (physical device, real codesigning, team `6PA43G2WVX`) | **BUILD SUCCEEDED** |
+| `devicectl device install app` + `device process launch` on "CJ's iPhone (2)" | App installed and launched successfully — first time this app has ever run on a screen |
+
+Scope/process notes:
+
+- The simulator subsystem on this Hackintosh wedged mid-session (`xcrun simctl` hangs
+  indefinitely) — a known standing instability, not specific to this app. Worked around
+  by verifying the simulator build succeeded via `xcodebuild build` output alone (no
+  install/launch attempted there) and moving straight to the physical device for
+  install/launch, per the existing guidance to prefer device over simulator on this host.
+- Unlike the Holster/Paper Holster app, ScrapLab's native target does **not** need the
+  `xcodebuild -downloadComponent MetalToolchain` step (no custom Metal shaders) — it was
+  tried defensively (copying that project's playbook) and turned out to hang/be
+  irrelevant; the device build only succeeded once that step was dropped entirely.
+- Codesigning was done via a `.command` file placed on the Mac's Desktop (per the
+  established GUI-console-only-for-codesigning constraint), after `osascript`-driven
+  "type into Terminal.app automatically" automation proved unreliable this session
+  (a macOS Automation permission prompt queued and then double-fired the build,
+  producing two concurrent `xcodebuild` processes against the same derived-data path —
+  both were killed and the derived-data directory was wiped before the clean rebuild).
+
+**Still open, not yet done:**
+
+- No manual on-device walkthrough of any screen has been reported back yet — the app is
+  installed and launched, but Browse/Create/Build/Profile flows described in each
+  phase's own "Left" list (search/filter, scan, build-step player, kids CRUD, etc.)
+  still need to actually be exercised on the screen before those items can be checked off.
+- Real RevenueCat wiring (Phase 6 item 2) and Phase 7 (Submission and cutover) remain
+  entirely untouched.
+
 ## 2026-09-13 Profile and billing — Phase 6 SwiftUI slice
 
 Same research-before-writing approach as Phases 4 and 5: had an Explore agent read
@@ -66,7 +128,7 @@ Verification from Linux:
 
 **Mac-side work required, in addition to the Phase 3/4/5 lists above:**
 
-1. Everything below the standing "Linux can't type-check SwiftUI" caveat applies here too — 13 new App-target files, none compiled yet.
+1. ~~Everything below the standing "Linux can't type-check SwiftUI" caveat applies here too — 13 new App-target files, none compiled yet.~~ Done 2026-09-13: all App-target files (130 total) compile clean on macOS and the app builds/installs/launches on a physical device. Items 3–5 below (specific screen-level visual/functional checks) are still open.
 2. **Wiring real billing is its own project, not a checkbox**: create the RevenueCat account and dashboard entitlement, create the auto-renewable subscription product in App Store Connect, add the `RevenueCat` SPM package to `project.yml`, implement a real `PurchaseServicing` adapter around `Purchases.shared`, and test at least one purchase and one restore in the StoreKit sandbox before this phase is actually demoable — none of that can start until this branch is on a Mac with an Apple Developer account attached.
 3. Confirm the Kids CRUD age `Picker` with `.pickerStyle(.wheel)` inside a `Form` renders sanely (wheel pickers inside forms can look cramped) and that the inline "Remove {name}? Yes/No" confirmation reads clearly at real size.
 4. Confirm `DeleteAccountSectionView`'s flow end to end on a real (test) account: delete, confirm `session.signOut()` fires, confirm every tab reactively falls back to its guest state without a relaunch.
@@ -640,7 +702,7 @@ Done (Linux-authored only — see the "Mac-side work required" list in the 2026-
 
 Left:
 
-- [ ] Everything above needs `xcodegen generate` + a real macOS build/test/device-launch pass before it counts as done — see the ordered Mac-side list in the 2026-09-13 status entry.
+- [x] `xcodegen generate` + macOS `swift test` (71/71, matching Linux) + a physical-device `xcodebuild` build/install/launch all passed on 2026-09-13 — see the dated status entry above. Manual on-device walkthrough of Browse/detail screens specifically is still pending.
 - [ ] Dedicated project list/browse screen (today only reachable via `Endpoints.projects`/`ProjectsQuery`, which has no list UI yet — only single-project detail exists)
 - [ ] `URLCache`/offline wiring for Browse (the pure `OfflineReadPolicy` groundwork exists but `BrowseStore` doesn't use it)
 - [ ] Previews for the new screens' loading/empty/error/plan-gated states
@@ -667,7 +729,7 @@ Done (Linux-authored only):
 
 Left:
 
-- [ ] Everything above needs `xcodegen generate` + a real macOS build/test/device-launch pass before it counts as done — this phase in particular exercises `PhotosPicker`, `UIImagePickerController`, and `UIImage` JPEG encoding, none of which Linux can touch at all.
+- [x] `xcodegen generate` + macOS `swift test` (71/71) + a physical-device `xcodebuild` build/install/launch all passed on 2026-09-13 — see the dated status entry above. `PhotosPicker`/`UIImagePickerController`/`UIImage` JPEG encoding compiled clean but have not been manually exercised on-device yet (camera/photo-library permission prompts included).
 - [ ] Household-staple pre-selection for Plus users in the manual picker (web-only today via an extra `/api/household-inventory` call)
 - [ ] Camera/photo-library permission prompt behavior has never actually fired in this app — Phase 1 added the `Info.plist` strings but nothing exercised them until this slice
 - [ ] Offline handling for a scan/recommendation request made while offline (falls through to the generic `.failed` message today, no queueing)
@@ -690,7 +752,7 @@ Done (Linux-authored only):
 
 Left:
 
-- [ ] Everything above needs `xcodegen generate` + a real macOS build/test/device-launch pass before it counts as done.
+- [x] `xcodegen generate` + macOS `swift test` (71/71) + a physical-device `xcodebuild` build/install/launch all passed on 2026-09-13 — see the dated status entry above. Manual on-device walkthrough of the Build/Library flow is still pending.
 - [ ] Offline progress outbox — the pure `BuildProgressOutboxStore`/`OfflineReadPolicy` groundwork exists (added in an earlier Linux-safe slice) but `BuildPlayerStore` doesn't queue through it yet; a step PATCH made while offline is silently dropped today rather than queued for reconnect. This is the one item from the plan's own "offline is the capability that matters most" warning that remains unwired.
 - [ ] Collections tab in Library (permanent stub, matches the web exactly — not a gap, a deliberate parity choice)
 - [ ] Household-staple pre-selection / `?tab=saved` deep-selection into Library (minor web conveniences not ported, noted rather than silently dropped)
@@ -717,7 +779,7 @@ Done (Linux-authored only; billing is client-side plumbing against a documented 
 
 Left:
 
-- [ ] Everything above needs `xcodegen generate` + a real macOS build/test/device-launch pass before it counts as done.
+- [x] `xcodegen generate` + macOS `swift test` (71/71) + a physical-device `xcodebuild` build/install/launch all passed on 2026-09-13 — see the dated status entry above. Manual on-device walkthrough of Profile/billing screens is still pending.
 - [ ] The actual RevenueCat integration: App Store Connect subscription product, RevenueCat dashboard entitlement, the SPM package dependency, and a real `PurchaseServicing` adapter — this is real-world account/business setup, not something further Linux-side code can produce.
 - [ ] StoreKit sandbox testing of one purchase and one restore, once the above exists.
 
