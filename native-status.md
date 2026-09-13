@@ -4,6 +4,67 @@ Tracking file for work against [`NATIVE_IOS_REWRITE_PLAN.md`](./NATIVE_IOS_REWRI
 
 _Last updated: 2026-09-13 (continued session) on `feat/native-ios-foundation`._
 
+## 2026-09-13 Build and library — Phase 5 SwiftUI slice
+
+Before writing any UI, had an Explore agent read the actual web pages
+(`src/app/build/[id]/page.tsx`, `.../complete/page.tsx`, `src/app/library/page.tsx`,
+`src/app/page.tsx`, `src/components/ui/StepIllustration.tsx`) rather than working from the
+plan doc's summary, because this phase has more state-machine subtlety than Browse or
+Create did. That surfaced one fact that would have produced a wrong data model if
+guessed: **`/build/[id]`'s `id` is a *project* id/slug, not a build-history row id** — the
+build_history row is a separate id (`start_or_resume_build`, called lazily) that the
+player only learns about after loading the project. `BuildLogRoute.build(UUID)` and the
+existing `.build(id:)` deep-link case both already carried a project id under that same
+assumption, so no router changes were needed there, but `BuildPlayerStore` had to be built
+around "load a project, then separately start-or-resume a build" rather than "load a
+build."
+
+Same standing caveat as Phases 3 and 4, more so here: this phase adds a hand-rolled
+`Canvas`-based illustration renderer with zero source SVGs to trace (no visual reference
+exists for these, on Linux or otherwise), so the ten step illustrations are a first-pass
+approximation of the web's shapes, not a pixel port — expect them to need a real look and
+adjustment once they can actually render on a screen.
+
+Pure logic added to `ScrapLabCore` (Linux-tested):
+
+- `BuildFlowLogic.swift`: `BuildStepPlayerState` (clamped step index, `advance()`/`retreat()`, rounded progress percent — mirrors the web's resume-clamp and `Math.round` behavior exactly), `WeeklyProgressSummary` (completed-in-trailing-7-days count against a fixed goal of 5, with the web's four-branch footer message ported verbatim), `ContinueBuildingSelector` and `HouseholdStaplesSelector` (the Home row filters/caps), `BuildHistoryStatusBadge` (Library's status pill text).
+
+SwiftUI screens added (macOS/Xcode-unverified, per the standing Linux-can't-type-check-SwiftUI caveat):
+
+- **Build** (`Features/Build/`): `BuildPlayerStore` + `BuildPlayerView` (loads the project, starts/resumes a build_history row only when signed in, fire-and-forget PATCH on every step change matching the web exactly, an *awaited* PATCH on Complete so a failure can show an inline retry message instead of navigating away), `StepIllustrationView` (ten `Canvas`-drawn shapes, `accessibilityHidden` and gated on `accessibilityReduceMotion` — both are native-only additions the web lacks), `BuildCompleteStore` + `BuildCompleteView` (static celebratory dots instead of a particle library, since the web has no animation here either; Save-to-Library with 409-as-success handling).
+- **Library** (`Features/Library/`): `LibraryStore` (parallel-fetches saved projects and build history, a fetch failure is a distinct retry state from "empty"), `LibraryView` (Saved/History/Collections tabs — Collections is a permanent stub matching the web), `SavedProjectCardView`, `BuildHistoryRowView` (deliberately **not tappable**, matching the web's history rows having no `onClick`/`Link`).
+- **Home** (`Features/Home/`): `HomeStore` assembling every section, `HomeView` replacing the Phase 1 placeholder content, `GreetingRowView`, `WeeklyProgressView`, `QuickNavRowView`, `SuggestedForYouView`, `ContinueBuildingView`, `HouseholdStaplesView`. Per the plan's own risk note, **`SuggestedForYouView` calls `GET /api/activities?featured=true&limit=10` instead of porting `src/lib/mock-data.ts`** — the mock data is content debt the plan explicitly says not to carry over, and the route already supports `featured` with zero server changes needed.
+- Real bug avoided by checking early: naively wiring "tap a saved project" or "start a build" as an in-stack push would have hit the same homogeneous-route-array problem Phase 4 found (`browsePath`/`buildLogPath`/`createPath` are each their own concrete-typed array, not a type-erased `NavigationPath`). Resolved by giving `ProjectDetailView` an `onStartBuild: (UUID) -> Void` closure that `RootTabView` wires to the same tab-switch-and-push the `scraplab://build/<uuid>` deep link already used (`selectedTab = .buildLog; buildLogPath = [.build(id)]`), so Browse, Library, and Home all reach the build player identically without needing a shared route type.
+- Extended `BuildLogRoute` with `.complete(projectId: UUID)`, wired all three `BuildLogRoute` cases (`project`/`build`/`complete`) to real screens, wired `Features/Home` into the Home tab and `Features/Library` into the Build Log tab, replacing both remaining placeholders. Every tab now shows real content — the five-tab shell has no `PlaceholderDestination` left except `Create/Profile` settings and Build/Create sub-flows not yet built (multipart create already done in Phase 4; Profile is Phase 6).
+- Found and fixed a nested-interactive-control bug in review before it shipped: an early draft of `SavedProjectCardView` put an "unsave" `Button` inside a `NavigationLink`'s label — the two controls fight for the tap gesture in SwiftUI. Fixed by making the card purely presentational and layering the unsave button as a sibling in a `ZStack` at the call site instead.
+
+Verification from Linux:
+
+| Command/check | Result |
+| --- | --- |
+| `docker run --rm -v "$PWD/ios-native/Packages/ScrapLabCore:/workspace:ro" -w /workspace swift:6.0-noble swift test --scratch-path /tmp/scraplab-build` | Passed: 70 Swift tests (up from 62) |
+| `swift -frontend -parse` over every file in `ios-native/App` (56 files, up from 39) | Passed — syntax only, does **not** type-check the new `Canvas`/Observation/generic-`DetailPhase` usage |
+| `NODE_ENV=test npm test` | Passed: 17 files / 161 tests |
+| `npm run lint` | Passed: 0 errors, 1 pre-existing custom-font warning |
+| `npx tsc --noEmit` | Passed |
+| `make validate` in `ios-native/` | Passed: YAML, plist, privacy manifest, asset JSON |
+| `git diff --check` | Passed |
+| Manual grep guard: no `checkout`/`billing/portal` references, no obvious secrets, no `fatalError`/`try!` in `ios-native/App` | Passed |
+
+**Mac-side work required, in addition to the Phase 3/4 lists above:** this is the largest
+single batch of new App-target files yet (17 new Swift files under `Features/Build`,
+`Features/Library`, `Features/Home`), so expect the highest chance yet of a real compile
+error on first `xcodebuild build`. Specific things to check once it builds: (1) the ten
+`StepIllustrationView` shapes actually look like their described action rather than
+abstract blobs — this is a pure design judgment call with no way to verify without a
+screen; (2) the build player's fire-and-forget step PATCH doesn't race the awaited
+Complete PATCH if a user taps Next then Complete rapidly; (3) `BuildCompleteView`'s
+`.navigationBarBackButtonHidden(true)` actually prevents backing into a finished build;
+(4) the full loop end to end on a signed-in account: start a build from a project, advance
+through steps, complete it, confirm it appears in Library's History tab as "Done" and
+Home's Weekly Progress increments; (5) confirm a paused (abandoned) build shows "Stopped"
+in History and does **not** appear in Home's Continue Building row.
+
 ## 2026-09-13 Create flow — Phase 4 SwiftUI slice
 
 Ported the whole Create flow described in the plan (`/create`, `/create/manual`,
@@ -256,6 +317,7 @@ The macOS blocker is resolved. Verified on the project's Hackintosh build host (
 | SwiftUI app target | Builds, tests, and runs on device as of Phase 1; **untested since** | `xcodebuild test` passed on physical device for Phase 1 (3/3 `DeepLinkTests`); the new Browse/detail screens have never been compiled by Xcode, only syntax-parsed on Linux |
 | Browse tab (Phase 3) | First slice written, Mac-unverified | List/search/filter + activity/project detail screens exist under `App/Features/Browse/`; needs `xcodegen generate` + a real build before it counts as working |
 | Create tab (Phase 4) | First slice written, Mac-unverified | Method picker, manual picker, results, and scan screens exist under `App/Features/Create/`; highest-risk surface so far (PhotosPicker/UIImagePickerController/UIImage JPEG encoding), zero Xcode verification |
+| Build/Library/Home (Phase 5) | First slice written, Mac-unverified | `App/Features/Build/`, `Features/Library/`, `Features/Home/` — 17 new files, largest untested batch yet; Home tab and Build Log tab both replaced their Phase 1 placeholders entirely |
 | API contract scanner | Implemented | Web + Swift endpoints checked against Next.js routes |
 | CI | Added | Path-filtered macOS workflow, pending real GitHub/macOS run |
 | macOS/Xcode | Unblocked for device workflow, but stale | Phase 1's build/sign/install/launch/test all worked on physical device; that verification predates every Browse/detail file below and must be rerun |
@@ -430,8 +492,8 @@ Result: `** TEST SUCCEEDED **` on a physical iPhone 14, all 3 `DeepLinkTests` pa
 
 - [ ] Move design-system atoms into a `ScrapLabUI` package target, or explicitly update the plan to accept app-target-only design atoms for this phase.
 - [ ] Add more preview states for loading, empty, error, and plan-gated screens.
-- [ ] Add static SwiftUI shapes for the 10 planned `StepIllustration` actions.
-- [ ] Add Reduce Motion behavior for illustrations.
+- [x] Add static SwiftUI shapes for the 10 planned `StepIllustration` actions (`StepIllustrationView`; first-pass geometry, no source SVGs to trace — expect visual rework once it can render on a screen).
+- [x] Add Reduce Motion behavior for illustrations (`StepIllustrationView` gates its pulse animation on `accessibilityReduceMotion` and marks itself `accessibilityHidden`, both native-only additions the web lacks).
 - [x] Add category emoji/theme dictionary port from web display helpers.
 - [x] Add card/list row components needed by Browse (`ActivityCardView`); Library still pending (Phase 5).
 
@@ -543,20 +605,26 @@ Left:
 
 ### Phase 5 — Build and library
 
-Status: **Not started beyond endpoint/model groundwork**.
+Status: **First SwiftUI slice written on Linux; zero minutes of macOS/Xcode verification so far** — see the "Mac-side work required" note in the 2026-09-13 Build-and-library entry above before trusting any of this. This is the largest single batch of new App-target files across Phases 3–5, so treat it as the highest-risk phase to date.
+
+Done (Linux-authored only):
+
+- [x] Build step player (`BuildPlayerStore` + `BuildPlayerView`)
+- [x] `POST /api/build-history` (start-or-resume, fired once per session when signed in)
+- [x] `PATCH /api/build-history/[id]` (fire-and-forget per step, awaited on Complete)
+- [x] Pause/resume lifecycle (Pause fires the `abandoned` PATCH and returns to project detail; resume reads the persisted `currentStep` back on next load)
+- [x] Completion celebration (`BuildCompleteStore` + `BuildCompleteView`, static confetti dots)
+- [x] Step illustrations (`StepIllustrationView`, ten `Canvas`-drawn shapes — first-pass approximations, not a pixel port, see above)
+- [x] Saved library tab (`LibraryView`'s Saved tab + `SavedProjectCardView`)
+- [x] Build-history library tab (`LibraryView`'s History tab + `BuildHistoryRowView`)
+- [x] Home sections: greeting, weekly progress, quick nav, continue building, household staples (all six, including "Suggested For You" backed by the real `featured=true` endpoint instead of mock data)
 
 Left:
 
-- [ ] Build step player
-- [ ] `POST /api/build-history`
-- [ ] `PATCH /api/build-history/[id]`
-- [ ] Pause/resume lifecycle
-- [ ] Completion celebration
-- [ ] Step illustrations
-- [ ] Saved library tab
-- [ ] Build-history library tab
-- [ ] Home sections: greeting, weekly progress, quick nav, continue building, household staples
-- [ ] Offline progress outbox
+- [ ] Everything above needs `xcodegen generate` + a real macOS build/test/device-launch pass before it counts as done.
+- [ ] Offline progress outbox — the pure `BuildProgressOutboxStore`/`OfflineReadPolicy` groundwork exists (added in an earlier Linux-safe slice) but `BuildPlayerStore` doesn't queue through it yet; a step PATCH made while offline is silently dropped today rather than queued for reconnect. This is the one item from the plan's own "offline is the capability that matters most" warning that remains unwired.
+- [ ] Collections tab in Library (permanent stub, matches the web exactly — not a gap, a deliberate parity choice)
+- [ ] Household-staple pre-selection / `?tab=saved` deep-selection into Library (minor web conveniences not ported, noted rather than silently dropped)
 
 ### Phase 6 — Profile and billing
 

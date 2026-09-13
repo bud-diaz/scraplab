@@ -12,7 +12,7 @@ enum CreateRoute: Hashable {
     /// tab's own stack instead of jumping the user over to Browse mid-flow.
     case activity(slug: String)
 }
-enum BuildLogRoute: Hashable { case project(UUID), build(UUID) }
+enum BuildLogRoute: Hashable { case project(UUID), build(UUID), complete(projectId: UUID) }
 enum BrowseRoute: Hashable { case explore(String), project(UUID) }
 enum ProfileRoute: Hashable { case settings }
 enum AppSheet: Identifiable, Equatable {

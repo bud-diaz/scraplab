@@ -5,11 +5,13 @@ import SwiftUI
 struct ProjectDetailView: View {
     let idOrSlug: String
     @Bindable var entitlements: EntitlementsStore
+    let onStartBuild: (UUID) -> Void
     @State private var store: ProjectDetailStore
 
-    init(idOrSlug: String, baseURL: URL, session: SessionStore, entitlements: EntitlementsStore) {
+    init(idOrSlug: String, baseURL: URL, session: SessionStore, entitlements: EntitlementsStore, onStartBuild: @escaping (UUID) -> Void) {
         self.idOrSlug = idOrSlug
         self.entitlements = entitlements
+        self.onStartBuild = onStartBuild
         _store = State(initialValue: ProjectDetailStore(baseURL: baseURL, session: session))
     }
 
@@ -46,6 +48,8 @@ struct ProjectDetailView: View {
                         if !project.safetyNotes.isEmpty {
                             safetySection(for: project)
                         }
+                        Button("Start Build") { onStartBuild(project.id) }
+                            .buttonStyle(.scrapLab())
                     }
                 }
                 .padding(SLSpacing.x4)

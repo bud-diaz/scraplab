@@ -5,12 +5,14 @@ struct RootTabView: View {
     @Bindable var session: SessionStore
     @Bindable var entitlements: EntitlementsStore
     @State private var browseStore: BrowseStore
+    @State private var libraryStore: LibraryStore
 
     init(router: AppRouter, session: SessionStore, entitlements: EntitlementsStore) {
         self.router = router
         self.session = session
         self.entitlements = entitlements
         _browseStore = State(initialValue: BrowseStore(baseURL: AppEnvironment.apiBaseURL, session: session))
+        _libraryStore = State(initialValue: LibraryStore(baseURL: AppEnvironment.apiBaseURL, session: session))
     }
 
     var body: some View {
@@ -31,20 +33,10 @@ struct RootTabView: View {
 
     private var homeTab: some View {
         NavigationStack(path: $router.homePath) {
-            VStack(spacing: SLSpacing.x6) {
-                Image(systemName: "hammer.fill").font(.system(size: 44)).foregroundStyle(SLColor.primary)
-                Text("Make something from what you have.").font(SLFont.title).multilineTextAlignment(.center)
-                Text("Browse freely as a guest, or connect an account when you want to save your work.")
-                    .font(SLFont.body).foregroundStyle(SLColor.bodyText).multilineTextAlignment(.center)
-                Button("Open foundation demo") { router.homePath.append(.foundation) }
-                    .buttonStyle(.scrapLab(.secondary))
-            }
-            .padding(SLSpacing.x6)
-            .navigationTitle("ScrapLab")
-            .background(SLColor.pageBackground.ignoresSafeArea())
-            .navigationDestination(for: HomeRoute.self) { route in
-                switch route { case .foundation: FoundationDemoView(entitlements: entitlements) }
-            }
+            HomeView(router: router, session: session, baseURL: AppEnvironment.apiBaseURL)
+                .navigationDestination(for: HomeRoute.self) { route in
+                    switch route { case .foundation: FoundationDemoView(entitlements: entitlements) }
+                }
         }
     }
 
@@ -70,15 +62,19 @@ struct RootTabView: View {
         NavigationStack(path: $router.buildLogPath) {
             Group {
                 if session.isAuthenticated {
-                    PlaceholderDestination(title: "Build Log", message: "Your builds will appear here when the API is connected.")
+                    LibraryView(store: libraryStore, router: router)
                 } else {
                     GuestSignInNudge(title: "Build Log", message: "Sign in to save and resume builds.") { router.presentedSheet = .signIn }
                 }
             }
             .navigationDestination(for: BuildLogRoute.self) { route in
                 switch route {
-                case .project: PlaceholderDestination(title: "Project", message: "Project details are not connected yet.")
-                case .build: PlaceholderDestination(title: "Build", message: "The build player is not connected yet.")
+                case .project(let id):
+                    ProjectDetailView(idOrSlug: id.uuidString, baseURL: AppEnvironment.apiBaseURL, session: session, entitlements: entitlements, onStartBuild: startBuild)
+                case .build(let id):
+                    BuildPlayerView(idOrSlug: id.uuidString, baseURL: AppEnvironment.apiBaseURL, session: session, router: router)
+                case .complete(let projectId):
+                    BuildCompleteView(projectID: projectId, baseURL: AppEnvironment.apiBaseURL, session: session, router: router)
                 }
             }
         }
@@ -92,10 +88,18 @@ struct RootTabView: View {
                     case .explore(let slug):
                         ActivityDetailView(idOrSlug: slug, baseURL: AppEnvironment.apiBaseURL, session: session, entitlements: entitlements)
                     case .project(let id):
-                        ProjectDetailView(idOrSlug: id.uuidString, baseURL: AppEnvironment.apiBaseURL, session: session, entitlements: entitlements)
+                        ProjectDetailView(idOrSlug: id.uuidString, baseURL: AppEnvironment.apiBaseURL, session: session, entitlements: entitlements, onStartBuild: startBuild)
                     }
                 }
         }
+    }
+
+    /// Matches the `scraplab://build/<uuid>` deep link's own behavior: starting a build
+    /// always lands in the Build Log tab, whether the user tapped "Start Build" from
+    /// Browse or from a saved project in the Library itself.
+    private func startBuild(projectID: UUID) {
+        router.selectedTab = .buildLog
+        router.buildLogPath = [.build(projectID)]
     }
 
     private var profileTab: some View {
