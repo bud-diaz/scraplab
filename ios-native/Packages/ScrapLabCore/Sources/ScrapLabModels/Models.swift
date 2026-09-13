@@ -203,6 +203,28 @@ public struct ScanResult: Codable, Equatable, Sendable {
     public init(detectedMaterials: [DetectedMaterial], requiresConfirmation: Bool) { self.detectedMaterials = detectedMaterials; self.requiresConfirmation = requiresConfirmation }
 }
 
+/// Partial material shape returned by `/api/mystery-materials`, which selects
+/// only id/name/icon/category rather than the full `Material` row.
+public struct MysteryMaterial: Codable, Equatable, Sendable {
+    public let id: UUID; public let name: String; public let icon: String?; public let category: String
+    public init(id: UUID, name: String, icon: String?, category: String) { self.id = id; self.name = name; self.icon = icon; self.category = category }
+}
+
+public struct AiSuggestion: Codable, Equatable, Sendable {
+    public let title: String; public let description: String; public let timeMinutes: Int
+    public let cleanupLevel: String; public let supervisionLevel: String; public let materials: [String]; public let steps: [String]
+    public init(title: String, description: String, timeMinutes: Int, cleanupLevel: String, supervisionLevel: String, materials: [String], steps: [String]) {
+        self.title = title; self.description = description; self.timeMinutes = timeMinutes; self.cleanupLevel = cleanupLevel; self.supervisionLevel = supervisionLevel; self.materials = materials; self.steps = steps
+    }
+}
+
+public struct ActivityMatch: Codable, Equatable, Sendable {
+    public let activity: Activity; public let matchedCount: Int; public let totalRequired: Int; public let matchScore: Double; public let matchLabel: String
+    public init(activity: Activity, matchedCount: Int, totalRequired: Int, matchScore: Double, matchLabel: String) {
+        self.activity = activity; self.matchedCount = matchedCount; self.totalRequired = totalRequired; self.matchScore = matchScore; self.matchLabel = matchLabel
+    }
+}
+
 public struct Activity: Codable, Equatable, Sendable {
     public let id: UUID; public let title: String; public let slug: String; public let category: ActivityCategory
     public let oneLiner: String?; public let description: String?; public let ageRanges: [ActivityAgeRange]
@@ -222,6 +244,23 @@ public struct Activity: Codable, Equatable, Sendable {
         self.id = id; self.title = title; self.slug = slug; self.category = category; self.oneLiner = oneLiner; self.description = description; self.ageRanges = ageRanges; self.difficulty = difficulty; self.timeMinutes = timeMinutes; self.estimatedCleanupMinutes = estimatedCleanupMinutes; self.attentionSpanFit = attentionSpanFit; self.energyLevel = energyLevel; self.soloOrGroup = soloOrGroup; self.supervisionLevel = supervisionLevel; self.environment = environment; self.materialsRequired = materialsRequired; self.materialsOptional = materialsOptional; self.scrapTags = scrapTags; self.themeTags = themeTags; self.skillTags = skillTags; self.promptType = promptType; self.learningAngle = learningAngle; self.expansionPrompts = expansionPrompts; self.safetyNotes = safetyNotes; self.heroImagePrompt = heroImagePrompt; self.premium = premium; self.featured = featured; self.seasonal = seasonal; self.inventoryFriendly = inventoryFriendly; self.remixable = remixable; self.createdAt = createdAt; self.projectId = projectId
     }
 }
+
+public struct ActivitiesResponse: Codable, Equatable, Sendable { public let activities: [Activity]; public let total: Int }
+public struct ActivityResponse: Codable, Equatable, Sendable { public let activity: Activity }
+public struct ProjectsResponse: Codable, Equatable, Sendable { public let projects: [ProjectWithMaterials] }
+public struct ProjectResponse: Codable, Equatable, Sendable { public let project: ProjectWithMaterials; public let substitutions: [MaterialSubstitution] }
+public struct ActivityRecommendationsResponse: Codable, Equatable, Sendable { public let matches: [ActivityMatch]; public let aiSuggestions: [AiSuggestion] }
+public struct RecommendationsResponse: Codable, Equatable, Sendable { public let recommendations: [ProjectRecommendation]; public let aiSuggestions: [AiSuggestion] }
+public struct HouseholdInventoryResponse: Codable, Equatable, Sendable { public let inventory: [HouseholdInventory] }
+public struct HouseholdInventoryItemResponse: Codable, Equatable, Sendable { public let item: HouseholdInventory }
+public struct BuildHistoryResponse: Codable, Equatable, Sendable { public let buildHistory: [BuildHistory] }
+public struct BuildEntryResponse: Codable, Equatable, Sendable { public let buildEntry: BuildHistory }
+public struct SavedProjectsResponse: Codable, Equatable, Sendable { public let savedProjects: [SavedProject] }
+public struct SavedProjectResponse: Codable, Equatable, Sendable { public let savedProject: SavedProject }
+public struct ChildProfilesResponse: Codable, Equatable, Sendable { public let childProfiles: [ChildProfile] }
+public struct ChildProfileResponse: Codable, Equatable, Sendable { public let childProfile: ChildProfile }
+public struct MaterialsResponse: Codable, Equatable, Sendable { public let grouped: [String: [Material]]?; public let materials: [Material] }
+public struct MysteryMaterialsResponse: Codable, Equatable, Sendable { public let materials: [MysteryMaterial] }
 
 public enum ModelCoding {
     public static func decoder() -> JSONDecoder {

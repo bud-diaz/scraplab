@@ -1,0 +1,40 @@
+{
+  "recommendations": [
+    {
+      "projectId": "44444444-4444-4444-4444-444444444444",
+      "title": "Tube Rocket",
+      "matchType": "close",
+      "matchScore": 0.75,
+      "missingRequiredMaterials": [
+        "33333333-3333-3333-3333-333333333334"
+      ],
+      "availableMaterialsUsed": [
+        "33333333-3333-3333-3333-333333333333"
+      ],
+      "suggestedSubstitutions": [
+        {
+          "missingMaterialId": "33333333-3333-3333-3333-333333333334",
+          "replacementMaterialId": "33333333-3333-3333-3333-333333333333",
+          "notes": "Roll paper into a cone."
+        }
+      ],
+      "reason": "You have the main tube."
+    }
+  ],
+  "aiSuggestions": [
+    {
+      "title": "Bottle Cap Moon Walk",
+      "description": "Use caps as moon rocks.",
+      "timeMinutes": 15,
+      "cleanupLevel": "low",
+      "supervisionLevel": "independent",
+      "materials": [
+        "bottle caps"
+      ],
+      "steps": [
+        "Sort caps",
+        "Tell the story"
+      ]
+    }
+  ]
+}

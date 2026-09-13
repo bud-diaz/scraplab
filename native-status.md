@@ -2,7 +2,223 @@
 
 Tracking file for work against [`NATIVE_IOS_REWRITE_PLAN.md`](./NATIVE_IOS_REWRITE_PLAN.md). Update this between commits and phase boundaries so the repo shows what is done, what is still Linux-verifiable, and what is blocked on macOS/Xcode.
 
-_Last updated: 2026-09-12 on `feat/native-ios-foundation`._
+_Last updated: 2026-09-13 (continued session) on `feat/native-ios-foundation`._
+
+## 2026-09-13 Create flow — Phase 4 SwiftUI slice
+
+Ported the whole Create flow described in the plan (`/create`, `/create/manual`,
+`/create/results`, `/create/scan`) directly against the live route handlers rather than
+the plan doc's summary, to catch shape mismatches early. Same caveat as the Browse slice
+above applies with more force here: this phase touches `PhotosPicker`, `UIImagePickerController`,
+and `UIImage` JPEG encoding, none of which exist on Linux even as stubs — the syntax-only
+parse check cannot catch a wrong argument label, a missing import, or a UIKit API used
+incorrectly, only gross grammar errors. Treat every file under `Features/Create/` as
+unverified until it has compiled once in Xcode.
+
+Read the actual route handlers rather than trusting the plan summary, and found real
+shape details that would have caused silent bugs if guessed:
+
+- `POST /api/activity-recommendations` allows **guests** (identity falls back to a hashed
+  IP via `getGuestIdentity`) — only `POST /api/recommendations` (the project-based,
+  currently-unused route) requires auth. `CreateResultsStore` attaches a bearer token when
+  one exists but never blocks on `session.isAuthenticated`, matching the route.
+- `POST /api/scan-materials` requires **both** auth and a Plus entitlement
+  (`requireAuth` + `canUsePhotoScan`), so `ScanView` gates on `session.isAuthenticated`
+  before ever showing the picker, matching the web page's own `if (!session) return <UpgradeCard>`.
+- `GET /api/materials` only supports a server-side `category` filter — there is no search
+  param. The manual picker loads the catalog once and does search/category filtering
+  entirely client-side (`MaterialCatalogFilter`), matching what the web client already does.
+- The web manual picker's age control only offers 3–12 in its dropdown even though the
+  backend accepts up to 18, and the scan flow hardcodes age 7 with no picker at all.
+  Ported both restrictions as-is (`CreateAge.pickerRange`, `CreateAge.scanDefault`) instead
+  of "fixing" a limitation that isn't mine to redesign in this pass.
+- **Real navigation bug caught before it shipped:** the web's results-page `ActivityCard`
+  links to `/explore/<slug>`, and naively porting that would have pushed a `BrowseRoute`
+  value onto `router.createPath` — but `createPath` is a homogeneous `[CreateRoute]` array
+  (same pattern as every other tab), so a `BrowseRoute` value has no matching
+  `navigationDestination` in that stack and the tap would have silently done nothing.
+  Added `CreateRoute.activity(slug:)` instead, so the Create tab pushes its own activity
+  detail destination without ever needing a cross-tab route type.
+
+Pure logic added to `ScrapLabCore` (Linux-tested):
+
+- `CreateFlowLogic.swift`: `CreateAge` (backend clamp + web's UI ranges), `MaterialCatalogFilter` (search/category filtering + category derivation), `MaterialSelectionState` (toggle/remove, the backend's 50-material cap, and a deterministic dedupe key mirroring the web's retry-safe `requestId`), `CreateResultsFilter` (the results page's All/Quick/Easy/Family chips, ported as pure predicates over `ActivityMatch`).
+
+SwiftUI screens added under `ios-native/App/Features/Create/` (macOS/Xcode-unverified):
+
+- `CreateMethodListView`: ports `CreateMethods.tsx`'s four method rows (two of which route to the manual picker on the web too — not a native simplification).
+- `ManualMaterialPickerStore` + `ManualMaterialPickerView` + `MaterialTileView`: loads the full material catalog once, category chips + search + selection tray + a 4-per-row-equivalent adaptive grid, sticky bottom bar with an age stepper and a "Find Builds" `NavigationLink`.
+- `CreateResultsStore` + `CreateResultsView` + `AiSuggestionCardView`: calls `POST /api/activity-recommendations`, renders matches (reusing `ActivityCardView` with its new optional `matchLabel`) and Gemini `AiSuggestion` cards with expandable steps, handles the 429 daily-limit and 403 plan-gate states distinctly from a generic network failure.
+- `ScanStore` + `ScanView` + `CameraCapture` + `PhotoUploadPreparer`: `PhotosPicker` and a thin `UIImagePickerController` wrapper for camera capture (`PhotosPicker` cannot trigger the camera), `PhotoUploadPreparer` applies the existing `PhotoCapturePolicy` numbers with real `UIGraphicsImageRenderer`/`UIImage.jpegData` calls, multipart upload via the existing `MultipartFormData` builder, sign-in nudge for guests, upgrade card for the plan gate.
+- Extended `CreateRoute` with `.results(materialIDs:childAge:)` and `.activity(slug:)`; wired all four Create screens into `RootTabView`'s Create tab, replacing its placeholder.
+- `ActivityCardView` gained an optional `matchLabel: String?` (defaults `nil`, so the existing Browse-tab call site is unaffected) to show the recommendation match badge as an extra `MetadataChip` instead of an overlay badge, which keeps the layout change low-risk without a device to check it on.
+
+Deliberately deferred: no pre-selection of household staples for Plus users in the manual picker (the web does this via an extra `/api/household-inventory` call; noted as a gap, not silently dropped), no drag-and-drop equivalent for the scan upload area (mobile doesn't have a drag-and-drop gesture to port), no offline queueing for a scan/recommendation request made while offline.
+
+Verification from Linux:
+
+| Command/check | Result |
+| --- | --- |
+| `docker run --rm -v "$PWD/ios-native/Packages/ScrapLabCore:/workspace:ro" -w /workspace swift:6.0-noble swift test --scratch-path /tmp/scraplab-build` | Passed: 62 Swift tests (up from 55) |
+| `swift -frontend -parse` over every file in `ios-native/App` (39 files, up from 28) | Passed — syntax only, does **not** type-check SwiftUI/UIKit/PhotosUI/Observation usage |
+| `NODE_ENV=test npm test` | Passed: 17 files / 161 tests |
+| `npm run lint` | Passed: 0 errors, 1 pre-existing custom-font warning |
+| `npx tsc --noEmit` | Passed |
+| `make validate` in `ios-native/` | Passed: YAML, plist, privacy manifest, asset JSON |
+| `git diff --check` | Passed |
+| Manual grep guard: no `checkout`/`billing/portal` references, no obvious secrets, no `fatalError`/`try!` in `ios-native/App` | Passed |
+
+**Mac-side work required, in addition to the Phase 3 list above:** `PhotosPicker`,
+`UIImagePickerController`, and `UIGraphicsImageRenderer`/`UIImage.jpegData` in
+`PhotoUploadPreparer`/`CameraCapture`/`ScanStore` are the highest-risk new surface —
+verify camera permission prompts actually fire (`NSCameraUsageDescription`/
+`NSPhotoLibraryUsageDescription` already exist in `Info.plist` from Phase 1, but this is
+the first code that actually exercises them), verify a real photo survives resize +
+upload without tripping the backend's 413/415, and confirm `CameraCapture`'s
+`@Environment(\.dismiss)` actually dismisses the `fullScreenCover` from inside the
+`UIImagePickerControllerDelegate` callback. Also confirm the full loop end to end: manual
+pick → results → tap a card → activity detail, and scan → detected list → results, on a
+signed-in Plus account (for scan) and a signed-out/free account (for the plan-gate and
+sign-in-nudge paths).
+
+## 2026-09-13 Browse/detail screens — first Phase 3 SwiftUI slice
+
+Picked up directly from the query/capture groundwork below (which was already sitting
+uncommitted in the worktree) and used it to build the first real screens beyond the
+Phase 1 foundation. This is the first slice with actual `Features/Browse` SwiftUI code
+instead of `PlaceholderDestination`, so treat it as higher-risk than the pure-package
+work until it has run through Xcode: **Linux cannot type-check SwiftUI at all** — the
+`swift -frontend -parse` check below only proves the files are syntactically valid
+Swift, not that they compile against the real SDK. The Phase 1 macOS pass already found
+two bugs (a deprecated `UIFontDescriptor` API and an unsupported array-pattern `switch`)
+that were invisible to every Linux check available; assume this slice can hide the same
+class of bug until `xcodegen generate` + `swift build`/`xcodebuild build` run on macOS.
+
+Pure logic added to `ScrapLabCore` (Linux-tested):
+
+- `MaterialsChecklist.swift`: `MaterialsChecklistItem`/`MaterialsChecklistState`, flattening `ProjectWithMaterials.projectMaterials` into a checklist with required-vs-optional grouping, toggle, and "mark on hand from household inventory" — independent of SwiftUI so the completion rule (`hasEverythingRequired` only checks required items) is unit-tested.
+- `RouteSegment` in `NativeLogic.swift`: ports both backend route-param validators — `isSafeRouteSegment` (`src/lib/validation/identifiers.ts`, used by `GET /api/activities/[id]`) and `resolveProject`'s `SLUG_PATTERN` (`src/lib/projects/resolve.ts`) — so a malformed deep-link slug fails client-side before a network round trip instead of only via the server's 404.
+- `ActivityCategoryTheme` in `NativeLogic.swift`: ports `src/lib/categoryTheme.ts`'s one-tile-per-category-but-emoji-carries-identity rule, with a test asserting every category gets a distinct emoji and none of the reserved supervision-safety colors leak in.
+- `EntitlementGate.isPremiumContentLocked(premium:plan:)`: the missing piece for gating a single activity/project card, distinct from the existing feature-level `EntitlementGate.evaluate`, which answers "can the free plan use this feature at all" rather than "is this specific item premium and the viewer free."
+- **Real bug caught before it shipped:** `GET /api/activities/[id]` and `GET /api/projects/[id]` both resolve their route param by *either* UUID or slug server-side (confirmed by reading `src/app/api/activities/[id]/route.ts` and `src/lib/projects/resolve.ts` directly), but `Endpoints.activity(_:)`/`Endpoints.project(_:)` only accepted a `UUID`. That would have made `/explore/<slug>` deep links and any slug-based navigation impossible to implement. Added `Endpoints.activity(_ idOrSlug: String)` / `Endpoints.project(_ idOrSlug: String)` overloads (the `UUID` overloads now forward to these), with a regression test (`activityAndProjectEndpointsAcceptSlugsForDeepLinkLookup`) and confirmed the TypeScript endpoint scanner still matches the new interpolated path.
+
+SwiftUI screens added under `ios-native/App/Features/Browse/` (macOS/Xcode-unverified):
+
+- `BrowseStore`: owns the activity list, wraps the existing `BrowseCatalogPageState`/`BrowseCatalogFilters` pure state, debounces filter/search changes 350ms before refetching, and drives pagination via a per-row `.task` that calls `loadMoreIfNeeded(after:)`.
+- `BrowseListView` + `BrowseFilterSheet`: search field via `.searchable`, a filter sheet for category/difficulty/age/time/energy built from the same enums the backend query builder already uses, loading/empty/error states via `SLEmptyState`.
+- `ActivityCardView`: category emoji tile, title, one-liner, time/difficulty chips, supervision badge, a small sparkle mark for premium activities.
+- `ActivityDetailStore` + `ActivityDetailView`: loads `GET /api/activities/{idOrSlug}`, validates the segment client-side with `RouteSegment.isSafeActivityLookup` first, shows an `UpgradeCard` instead of the body when `EntitlementGate.isPremiumContentLocked` is true for the current plan.
+- `ProjectDetailStore` + `ProjectDetailView` + `MaterialsChecklistView`: loads `GET /api/projects/{idOrSlug}`, builds a `MaterialsChecklistState` from the response, same premium-gate treatment as activities.
+- Wired real screens into `RootTabView`'s Browse tab and its two `navigationDestination` cases, replacing the `PlaceholderDestination` stand-ins. `AppEnvironment.swift` added as the one place the API base URL lives (both `ScrapLabAccessLoader` and the new stores now read it from there instead of a duplicated literal).
+
+Deliberately deferred rather than half-built: no `URLCache`/offline wiring on `BrowseStore` yet (the pure `OfflineReadPolicy` groundwork exists but isn't connected), no previews added for the new screens' loading/empty/error states, `BuildLogRoute.project(UUID)` in the Build Log tab still shows a placeholder rather than reusing `ProjectDetailView` (Build Log/Library is Phase 5, left alone on purpose).
+
+Verification from Linux:
+
+| Command/check | Result |
+| --- | --- |
+| `docker run --rm -v "$PWD/ios-native/Packages/ScrapLabCore:/workspace:ro" -w /workspace swift:6.0-noble swift test --scratch-path /tmp/scraplab-build` | Passed: 55 Swift tests (up from 43) |
+| `swift -frontend -parse` over every file in `ios-native/App` (28 files) | Passed — syntax only, does **not** type-check SwiftUI/Observation macro usage |
+| `NODE_ENV=test npx vitest run tests/api/route-inventory.test.ts --reporter=verbose` | Passed: 73 tests, including the new slug-endpoint literals |
+| `NODE_ENV=test npm test` | Passed: 17 files / 161 tests |
+| `npm run lint` | Passed: 0 errors, 1 pre-existing custom-font warning |
+| `npx tsc --noEmit` | Passed |
+| `make validate` in `ios-native/` | Passed: YAML, plist, privacy manifest, asset JSON |
+| `git diff --check` | Passed |
+| Manual grep guard: no `checkout`/`billing/portal` references, no obvious secrets, no `fatalError`/`try!` in `ios-native/App` | Passed |
+
+**Mac-side work required before any of this is real, in order:**
+
+1. `xcodegen generate` — the app target gained a whole new `Features/Browse` directory plus `Features/Shared/DetailPhase.swift` and `Services/AppEnvironment.swift`; confirm XcodeGen's directory glob picks all of it up.
+2. `swift test` for `ScrapLabCore` on macOS — should match the 55/55 Linux result, but this is the first real confirmation since the last macOS pass (which only saw 15).
+3. `xcodebuild build` (device destination, per the working recipe further down this file) — this is the first opportunity for the Swift compiler and the Observation/SwiftUI macros to actually check `BrowseStore`, `ActivityDetailStore`, `ProjectDetailStore`, and every new View body. Expect at least one real compile error given the project's own history (two Xcode-only bugs in the Phase 1 slice); do not be surprised if `@Bindable`/`@Observable` interplay, the `.task(id:)` generics, or the generic `DetailPhase<Value: Equatable>` need small adjustments.
+4. Launch on the physical device (or fight through the simulator instability again) and actually browse: type a search term, apply a filter, open an activity and a project, toggle checklist items, confirm the premium gate shows for a premium item when signed out. None of this has ever rendered on a screen.
+5. If step 3 turns up compile errors, fix them on the Mac, then re-run `swift test` and re-sync the fix back to this branch before continuing Phase 3 work (manual material substitutions, instructions/build-step preview, etc.).
+
+## 2026-09-13 query/capture update — Phase 3 endpoint groundwork
+
+Completed the next Linux-safe slice focused on Browse/detail readiness and production fixture capture workflow:
+
+- Added typed Swift query builders for `GET /api/activities`, `GET /api/projects`, and `GET /api/materials`, preserving the backend's exact query parameter names (`age_range`, `time_max`, `energy_level`, `scrap_tag`, `cleanup_level`, `supervision_level`, comma-separated `materials`, etc.).
+- Added API tests proving the query builders do not leak Swift camelCase names into backend requests and that `APIClient` appends query items to the outgoing URL.
+- Added `scripts/capture-native-fixtures.mjs` plus `npm run fixtures:native:capture` to capture live API payloads into the Swift fixture directory without service-role keys. Public list/detail routes can be captured anonymously; protected routes are skipped unless `SCRAPLAB_FIXTURE_BEARER_TOKEN` is intentionally provided.
+- Verified the capture script against the live Vercel deployment using a temp output directory, so it did not overwrite the checked-in representative fixtures. It captured public `activities`, `projects`, `materials`, `activity-detail`, and `project-detail` payloads; protected fixture capture correctly skipped without a bearer token.
+
+Verification from Linux:
+
+| Command/check | Result |
+| --- | --- |
+| `docker run --rm -v "$PWD/ios-native/Packages/ScrapLabCore:/workspace:ro" -w /workspace swift:6.0-noble swift test --scratch-path /tmp/scraplab-build` | Passed: 43 Swift tests |
+| `SCRAPLAB_FIXTURE_OUT_DIR=/tmp/scraplab-native-fixtures npm run fixtures:native:capture` | Passed: captured public live fixtures to `/tmp`, skipped protected routes without token |
+| `NODE_ENV=test npx vitest run tests/api/route-inventory.test.ts --reporter=verbose` | Passed: 73 tests |
+| `NODE_ENV=test npm test` | Passed: 17 files / 161 tests |
+| `npm run lint` | Passed: 0 errors, 1 pre-existing custom-font warning |
+| `npx tsc --noEmit` | Passed |
+| `make validate` in `ios-native/` | Passed: YAML, plist, privacy manifest, asset JSON |
+| `git diff --check` | Passed |
+
+Mac-side still required for this slice: regenerate the Xcode project, rerun macOS `swift test`, and rerun physical-device `xcodebuild test`, because both `Endpoint.swift` and SwiftPM test resources changed. To replace representative fixtures with captured production protected-route fixtures, run `SCRAPLAB_FIXTURE_BEARER_TOKEN=<Supabase access token> npm run fixtures:native:capture` from the repo root and then rerun the Swift package tests before committing those payloads.
+
+## 2026-09-13 early update — endpoint envelope fixture pass
+
+Completed one more Linux-safe API compatibility slice:
+
+- Added first-party Swift response envelope models for the app-consumable API routes the native client will decode: activities, activity detail, projects, project detail, activity recommendations, legacy recommendations, household inventory, build history, saved projects, child profiles, materials, mystery materials, scan results, and single-row mutation responses.
+- Added 14 representative JSON fixtures under `ios-native/Packages/ScrapLabCore/Tests/ScrapLabModelsTests/Fixtures/` and wired the test target resources in `Package.swift`.
+- Added `EndpointEnvelopeFixtureTests` to decode each envelope fixture through the production `ModelCoding.decoder()` rather than ad-hoc decoding.
+- Caught and modeled a real backend shape edge: `GET /api/mystery-materials` returns partial material rows (`id`, `name`, `icon`, `category`) rather than full `Material` rows with `aliases` and `created_at`, so native now has a separate `MysteryMaterial` type instead of pretending the full model applies.
+- These are local representative fixtures based on route source, not captured production payloads. Production capture remains a separate Mac/server/credential-side task before binary readiness.
+
+Verification from Linux:
+
+| Command/check | Result |
+| --- | --- |
+| `docker run --rm -v "$PWD/ios-native/Packages/ScrapLabCore:/workspace:ro" -w /workspace swift:6.0-noble swift test --scratch-path /tmp/scraplab-build` | Passed: 39 Swift tests |
+| `NODE_ENV=test npx vitest run tests/api/route-inventory.test.ts --reporter=verbose` | Passed: 70 tests |
+| `NODE_ENV=test npm test` | Passed: 17 files / 158 tests |
+| `npm run lint` | Passed: 0 errors, 1 pre-existing custom-font warning |
+| `npx tsc --noEmit` | Passed |
+| `make validate` in `ios-native/` | Passed: YAML, plist, privacy manifest, asset JSON |
+| `git diff --check` | Passed |
+
+Mac-side still required for this slice: regenerate the Xcode project because `Package.swift` now declares test resources, rerun `swift test` for `ScrapLabCore` on macOS, and rerun the physical-device `xcodebuild test` workflow. Simulator validation is still left to the known CoreSimulatorService blocker unless that host has been stabilized.
+
+## 2026-09-12 late update — Linux-safe native logic pass
+
+Completed another remote/Linux-safe slice before returning to Mac-only work:
+
+- Added `ScrapLabModels/NativeLogic.swift` with pure, SwiftPM-testable native logic for:
+  - `StepIllustrationAction` keyword matching, ported from the web `StepIllustration.tsx` order.
+  - `EntitlementGate` decisions for free vs Plus, feature locks, recommendation limits, child-profile limits, and saved-project limits.
+  - `ScanUploadPolicy` constants/validation matching `POST /api/scan-materials`: field name `image`, max 5 MB, and allowed jpeg/png/webp/heic/heif MIME types.
+  - `ProjectDisplayTheme` for the eight current web slug emoji/background mappings, with an honest fallback instead of fabricated project data.
+  - `NativeDeepLink`, a package-level parser covering `scraplab://...` and `scraplab:/...` forms for explore, project, build, upgrade, and auth callback routes.
+  - `AccessInfoCache`, a disk cache for the last access payload so Plus UI can render from cached state before network refresh.
+  - Auth/onboarding helpers: credential validation, 6-digit OTP validation, password-reset/auth state transitions, and onboarding child-profile request construction.
+  - Offline/build-progress groundwork: `BuildProgressOutboxStore` for queued progress writes, `OfflineReadPolicy` for cache-vs-network decisions, and a fakeable `NetworkReachabilityProviding` seam for later `NWPathMonitor` wiring.
+  - `PhotoCapturePolicy`, a pure helper for the planned 1600 px long-edge resize and 0.8 -> 0.6 JPEG quality fallback before upload.
+- Replaced the app-local `DeepLink` implementation with a `typealias` to the package parser so the app and Linux package tests do not drift.
+- Added package tests, raising the Linux SwiftPM package suite from 15 to 37 tests.
+- Reworked the Swift endpoint scanner from nearest-token matching to initializer-scoped `Endpoint(...)` parsing, with regression coverage for multiline/interpolated paths and misleading nearby methods.
+- Added `npm run audit:native-slugs`, a no-secret-safe script that confirms web/native slug maps are internally consistent and, when Supabase env vars are provided, audits that those project rows exist live.
+- Added `docs/ios-domain-support-checklist.md` for the App Store support URL, privacy URL, associated-domain, privacy-manifest, and demo-account work that has to happen outside Linux.
+- Added a route-inventory regression fixture proving the scanner sees forbidden native `/api/checkout`, `/api/billing/portal`, and `/api/webhooks/...` endpoints if they are ever introduced, so the existing native billing guard has coverage.
+
+Verification from Linux:
+
+| Command/check | Result |
+| --- | --- |
+| `docker run --rm -v "$PWD/ios-native/Packages/ScrapLabCore:/workspace:ro" -w /workspace swift:6.0-noble swift test --scratch-path /tmp/scraplab-build` | Passed: 37 Swift tests |
+| `NODE_ENV=test npx vitest run tests/api/route-inventory.test.ts --reporter=verbose` | Passed: 70 tests |
+| `NODE_ENV=test npm test` | Passed: 17 files / 158 tests |
+| `npm run lint` | Passed: 0 errors, 1 pre-existing custom-font warning in `src/app/layout.tsx` |
+| `npx tsc --noEmit` | Passed |
+| `make validate` in `ios-native/` | Passed: YAML, plist, privacy manifest, asset JSON |
+| `npm run audit:native-slugs` | Passed internal web/native slug-map consistency for 8 slugs; live Supabase row audit skipped because env vars were not provided |
+| App Swift text scan for `fatalError` / `try!` under `ios-native/App` | Passed |
+| `git diff --check` | Passed |
+
+Mac-side still required for this slice: regenerate the Xcode project and run the physical-device `xcodebuild test` workflow again, because the app now imports the package-level deep-link parser through `typealias DeepLink = NativeDeepLink` and the package has new cache/native-logic/auth/offline/reachability/photo policy files. Simulator validation remains blocked by the known CoreSimulatorService instability.
 
 ## 2026-09-12 update — macOS/Xcode verification
 
@@ -36,12 +252,14 @@ The macOS blocker is resolved. Verified on the project's Hackintosh build host (
 | Branch | In progress | `feat/native-ios-foundation` |
 | Foundation slice | Verified on Linux + macOS + device | Staged, independently reviewed after fixes, three real bugs found/fixed on macOS |
 | Existing Capacitor `ios/` | Untouched | Still the shipping fallback |
-| Swift package | Linux + macOS tested | `ScrapLabModels` + `ScrapLabAPI`, 15/15 tests pass natively |
-| SwiftUI app target | Builds, tests, and runs | `xcodebuild test` passes on physical device (3/3 `DeepLinkTests`); simulator destination still blocked |
+| Swift package | Linux + macOS previously tested; latest Linux pass green | `ScrapLabModels` + `ScrapLabAPI`, 55/55 tests pass in Linux Docker after adding materials-checklist logic, route-segment validation, category theming, and slug-lookup endpoints; macOS rerun needed |
+| SwiftUI app target | Builds, tests, and runs on device as of Phase 1; **untested since** | `xcodebuild test` passed on physical device for Phase 1 (3/3 `DeepLinkTests`); the new Browse/detail screens have never been compiled by Xcode, only syntax-parsed on Linux |
+| Browse tab (Phase 3) | First slice written, Mac-unverified | List/search/filter + activity/project detail screens exist under `App/Features/Browse/`; needs `xcodegen generate` + a real build before it counts as working |
+| Create tab (Phase 4) | First slice written, Mac-unverified | Method picker, manual picker, results, and scan screens exist under `App/Features/Create/`; highest-risk surface so far (PhotosPicker/UIImagePickerController/UIImage JPEG encoding), zero Xcode verification |
 | API contract scanner | Implemented | Web + Swift endpoints checked against Next.js routes |
 | CI | Added | Path-filtered macOS workflow, pending real GitHub/macOS run |
-| macOS/Xcode | Unblocked for device workflow | Build/sign/install/launch/test all work on physical device; CoreSimulatorService is unstable on this host specifically |
-| Commit state | Staged | `.hermes/` remains untracked and should not be committed |
+| macOS/Xcode | Unblocked for device workflow, but stale | Phase 1's build/sign/install/launch/test all worked on physical device; that verification predates every Browse/detail file below and must be rerun |
+| Commit state | Worktree modified | `.hermes/` remains untracked and should not be committed; current native/status changes are not committed |
 
 ## Completed in current foundation slice
 
@@ -84,7 +302,7 @@ The macOS blocker is resolved. Verified on the project's Hackintosh build host (
 - [x] Preserved structured/non-string error bodies.
 - [x] Added multipart body builder.
 - [x] Added typed request bodies for native mutating endpoints: activity recommendations, child profiles, household inventory, build start/progress, and saved projects.
-- [x] Added Swift package tests for models, request encoding, endpoints, API client, error mapping, multipart framing, nullable access limits, and supervision normalization.
+- [x] Added Swift package tests for models, request encoding, endpoints, API client, error mapping, multipart framing, nullable access limits, supervision normalization, pure native deep-link parsing, entitlement gating, scan-upload validation, step-illustration keyword matching, slug display themes, cached access persistence, auth/OTP/onboarding reducers, offline policy/reachability seam, progress outbox persistence, and photo capture resize/compression policy.
 
 ### SwiftUI app shell and design foundation
 
@@ -117,11 +335,11 @@ The macOS blocker is resolved. Verified on the project's Hackintosh build host (
 
 | Command/check | Result |
 | --- | --- |
-| `docker run --rm -v "$PWD/ios-native/Packages/ScrapLabCore:/workspace:ro" -w /workspace swift:6.0-noble swift test --scratch-path /tmp/scraplab-build` | Passed: 15 Swift tests |
-| Swift parser check over all native `.swift` files | Passed: 26 files |
+| `docker run --rm -v "$PWD/ios-native/Packages/ScrapLabCore:/workspace:ro" -w /workspace swift:6.0-noble swift test --scratch-path /tmp/scraplab-build` | Passed: 37 Swift tests |
+| Swift parser check over all native `.swift` files | Passed: 36 files |
 | `make validate` in `ios-native/` | Passed: YAML, plist, privacy manifest, asset JSON |
-| `NODE_ENV=test npx vitest run tests/api/route-inventory.test.ts --reporter=verbose` | Passed: 69 tests |
-| `NODE_ENV=test npm test` | Passed: 17 files / 157 tests |
+| `NODE_ENV=test npx vitest run tests/api/route-inventory.test.ts --reporter=verbose` | Passed: 70 tests |
+| `NODE_ENV=test npm test` | Passed: 17 files / 158 tests |
 | `npm run lint` | Passed: 0 errors, 1 pre-existing custom-font warning |
 | `npx tsc --noEmit` | Passed |
 | `npm run build` with placeholder public env | Passed, generated 48 routes/pages |
@@ -158,7 +376,7 @@ Result: `** TEST SUCCEEDED **` on a physical iPhone 14, all 3 `DeepLinkTests` pa
 
 ### Highest-leverage Linux-safe work
 
-- [ ] Add recorded JSON fixtures for backend responses and decode them in Swift package tests.
+- [ ] Add captured production JSON fixtures for backend responses and decode them in Swift package tests. Representative local route-shape fixtures now exist and pass, but they are not a substitute for recorded production payloads.
   - `GET /api/activities`
   - `GET /api/activities/[id]`
   - `GET /api/projects`
@@ -173,40 +391,40 @@ Result: `** TEST SUCCEEDED **` on a physical iPhone 14, all 3 `DeepLinkTests` pa
   - `GET /api/materials`
   - `GET /api/mystery-materials`
 - [x] Add request-encoding tests for every currently modeled mutating endpoint body.
-- [ ] Add explicit endpoint scanner regression that native endpoints cannot include checkout, billing portal, or webhooks.
-- [ ] Make the Swift endpoint scanner more declaration-scoped/structural instead of nearest-method heuristic if it starts to get brittle.
-- [ ] Add `StepIllustration` keyword matcher as pure Swift logic with tests before drawing the illustrations.
-- [ ] Add entitlement gating pure logic tests for free vs Plus states.
-- [ ] Add pure URL/deep-link tests for all planned routes:
+- [x] Add explicit endpoint scanner regression that native endpoints cannot include checkout, billing portal, or webhooks.
+- [x] Make the Swift endpoint scanner more declaration-scoped/structural instead of nearest-method heuristic if it starts to get brittle.
+- [x] Add `StepIllustration` keyword matcher as pure Swift logic with tests before drawing the illustrations.
+- [x] Add entitlement gating pure logic tests for free vs Plus states.
+- [x] Add pure URL/deep-link tests for all planned routes:
   - `/explore/<slug>`
   - `/projects/<uuid>`
   - `/build/<uuid>`
   - `/upgrade`
   - auth callback path
-- [ ] Add cached `AccessInfo` persistence logic and tests so Plus chrome does not flash free-tier UI on cold launch.
-- [ ] Add child-profile/onboarding request structs and encode tests.
-- [ ] Add build-progress request structs and encode tests.
-- [ ] Add saved-project request structs and encode tests.
-- [ ] Add household-inventory request structs and encode tests.
-- [ ] Add scan-material upload validation helpers as pure Swift logic:
+- [x] Add cached `AccessInfo` persistence logic and tests so Plus chrome does not flash free-tier UI on cold launch.
+- [x] Add child-profile/onboarding request structs and encode tests.
+- [x] Add build-progress request structs and encode tests.
+- [x] Add saved-project request structs and encode tests.
+- [x] Add household-inventory request structs and encode tests.
+- [x] Add scan-material upload validation helpers as pure Swift logic:
   - max 5 MB
   - allowed MIME types
   - image field name `image`
-- [ ] Add `PhotoCaptureService` image-resize/compression design notes and pure helper tests where possible without UIKit runtime.
-- [ ] Add `URLCache`/offline policy skeleton that is testable without device APIs.
-- [ ] Add `ProgressOutbox` model and persistence tests for queued build-progress writes.
-- [ ] Add `NWPathMonitor` adapter boundary, leaving live monitor wiring for app/device phase.
-- [ ] Add production-slug audit script/test for the eight `SLUG_DISPLAY` project slugs, using safe placeholder/no-secret mode unless live credentials are intentionally provided.
-- [ ] Add support/privacy URL/domain checklist once `scraplab.app` decision is made.
+- [x] Add `PhotoCaptureService` image-resize/compression design notes and pure helper tests where possible without UIKit runtime.
+- [x] Add `URLCache`/offline policy skeleton that is testable without device APIs.
+- [x] Add `ProgressOutbox` model and persistence tests for queued build-progress writes.
+- [x] Add `NWPathMonitor` adapter boundary, leaving live monitor wiring for app/device phase.
+- [x] Add production-slug audit script/test for the eight `SLUG_DISPLAY` project slugs, using safe placeholder/no-secret mode unless live credentials are intentionally provided.
+- [x] Add support/privacy URL/domain checklist once `scraplab.app` decision is made. See `docs/ios-domain-support-checklist.md`.
 
 ### Phase 2 work that can start before Mac
 
 - [ ] Add `supabase-swift` dependency only after deciding exact version and confirming package resolution strategy.
-- [ ] Create `AuthSessionAdapter` protocol tests and fake adapter behavior.
-- [ ] Build sign-in/sign-up view models independent of SwiftUI rendering.
-- [ ] Add OTP confirmation state machine tests.
-- [ ] Add onboarding child-age validation and request construction tests.
-- [ ] Add password reset state machine, since the plan calls it out as an open gap.
+- [x] Create `AuthSessionAdapter` protocol tests and fake adapter behavior. Pure auth reducer/input validation exists; concrete Supabase adapter remains pending.
+- [x] Build sign-in/sign-up view models independent of SwiftUI rendering. Covered as pure credential/state reducer groundwork; UI view models still pending once `supabase-swift` is selected.
+- [x] Add OTP confirmation state machine tests.
+- [x] Add onboarding child-age validation and request construction tests.
+- [x] Add password reset state machine, since the plan calls it out as an open gap.
 
 ### Design-system work that can continue before Mac
 
@@ -214,8 +432,8 @@ Result: `** TEST SUCCEEDED **` on a physical iPhone 14, all 3 `DeepLinkTests` pa
 - [ ] Add more preview states for loading, empty, error, and plan-gated screens.
 - [ ] Add static SwiftUI shapes for the 10 planned `StepIllustration` actions.
 - [ ] Add Reduce Motion behavior for illustrations.
-- [ ] Add category emoji/theme dictionary port from web display helpers.
-- [ ] Add card/list row components needed by Browse and Library.
+- [x] Add category emoji/theme dictionary port from web display helpers.
+- [x] Add card/list row components needed by Browse (`ActivityCardView`); Library still pending (Phase 5).
 
 ## Phase tracker
 
@@ -246,7 +464,7 @@ Not done / intentionally deferred:
 - [ ] Real Supabase sign-in adapter
 - [ ] Device-demoable sign-in + plan view
 - [ ] `xcodebuild test` run against an iOS Simulator destination (CoreSimulatorService wedges on this host; device run substitutes for now)
-- [ ] Captured production JSON fixtures
+- [ ] Captured production JSON fixtures (representative local route-shape fixtures and capture script added; protected production capture still pending)
 - [ ] `ScrapLabUI` package split, if keeping the original package architecture
 
 ### Phase 2 — Shell and auth
@@ -276,36 +494,52 @@ Left:
 
 ### Phase 3 — Browse and detail
 
-Status: **Not started beyond endpoint/model/design groundwork**.
+Status: **First SwiftUI slice written on Linux; zero minutes of macOS/Xcode verification so far.**
+
+Done (Linux-authored only — see the "Mac-side work required" list in the 2026-09-13 Browse/detail entry above before trusting any of this):
+
+- [x] Browse list backed by `GET /api/activities` (`BrowseStore` + `BrowseListView`)
+- [x] Search/filter state and debouncing (`BrowseStore` 350ms debounce + `BrowseFilterSheet` for category/difficulty/age/time/energy)
+- [x] Activity detail (`ActivityDetailStore` + `ActivityDetailView`, `GET /api/activities/{idOrSlug}`)
+- [x] Project detail backed by `GET /api/projects/{idOrSlug}` (`ProjectDetailStore` + `ProjectDetailView`)
+- [x] Materials checklist (`MaterialsChecklistState` pure logic, Linux-tested + `MaterialsChecklistView`)
+- [x] Premium gates in detail screens (`EntitlementGate.isPremiumContentLocked`, Linux-tested)
+- [x] Activity/project cards (`ActivityCardView`; project cards folded into `ProjectDetailView`'s header rather than a separate list yet)
+- [x] Metadata and supervision rendering in real screens (`MetadataChip`/`SupervisionBadge` wired into both detail screens and the activity card)
 
 Left:
 
-- [ ] Browse list backed by `GET /api/activities`
-- [ ] Search/filter state and debouncing
-- [ ] Activity detail
-- [ ] Project detail backed by `GET /api/projects/[id]`
-- [ ] Materials checklist
-- [ ] Premium gates in detail screens
-- [ ] Activity/project cards
-- [ ] Metadata and supervision rendering in real screens
+- [ ] Everything above needs `xcodegen generate` + a real macOS build/test/device-launch pass before it counts as done — see the ordered Mac-side list in the 2026-09-13 status entry.
+- [ ] Dedicated project list/browse screen (today only reachable via `Endpoints.projects`/`ProjectsQuery`, which has no list UI yet — only single-project detail exists)
+- [ ] `URLCache`/offline wiring for Browse (the pure `OfflineReadPolicy` groundwork exists but `BrowseStore` doesn't use it)
+- [ ] Previews for the new screens' loading/empty/error/plan-gated states
+- [ ] `BuildLogRoute.project(UUID)` in the Build Log tab still shows a placeholder instead of reusing `ProjectDetailView` (left for Phase 5 on purpose)
+- [ ] Material substitutions UI (`ProjectResponse.substitutions` is decoded but not rendered)
 
 ### Phase 4 — Create flow
 
-Status: **Not started beyond endpoint/API groundwork**.
+Status: **First SwiftUI slice written on Linux; zero minutes of macOS/Xcode verification so far** — see the "Mac-side work required" note in the 2026-09-13 Create-flow entry above before trusting any of this.
+
+Done (Linux-authored only):
+
+- [x] Create method picker (`CreateMethodListView`)
+- [x] Manual material picker (`ManualMaterialPickerStore` + `ManualMaterialPickerView` + `MaterialTileView`)
+- [x] Selection tray and age control (selection tray chips + `Stepper` in `ManualMaterialPickerView`'s bottom bar)
+- [x] Recommendation results (`CreateResultsStore` + `CreateResultsView`)
+- [x] Gemini suggestion cards (`AiSuggestionCardView`)
+- [x] Scan flow with PhotosPicker (`ScanView`)
+- [x] Camera capture wrapper (`CameraCapture`, a thin `UIImagePickerController` representable)
+- [x] Image downscale/recompression (`PhotoUploadPreparer`, wrapping the existing pure `PhotoCapturePolicy`)
+- [x] Multipart upload integration (`ScanStore`, using the existing `MultipartFormData` builder)
+- [x] 403 plan gate UI (`ScanStore.phase == .planGate` → `UpgradeCard`; also handled in `CreateResultsStore` for symmetry even though `/api/activity-recommendations` doesn't currently return one)
+- [x] 429 daily-limit UI (`CreateResultsStore.phase == .limitReached` → `SLEmptyState`)
 
 Left:
 
-- [ ] Create method picker
-- [ ] Manual material picker
-- [ ] Selection tray and age control
-- [ ] Recommendation results
-- [ ] Gemini suggestion cards
-- [ ] Scan flow with PhotosPicker
-- [ ] Camera capture wrapper
-- [ ] Image downscale/recompression
-- [ ] Multipart upload integration
-- [ ] 403 plan gate UI
-- [ ] 429 daily-limit UI
+- [ ] Everything above needs `xcodegen generate` + a real macOS build/test/device-launch pass before it counts as done — this phase in particular exercises `PhotosPicker`, `UIImagePickerController`, and `UIImage` JPEG encoding, none of which Linux can touch at all.
+- [ ] Household-staple pre-selection for Plus users in the manual picker (web-only today via an extra `/api/household-inventory` call)
+- [ ] Camera/photo-library permission prompt behavior has never actually fired in this app — Phase 1 added the `Info.plist` strings but nothing exercised them until this slice
+- [ ] Offline handling for a scan/recommendation request made while offline (falls through to the generic `.failed` message today, no queueing)
 
 ### Phase 5 — Build and library
 

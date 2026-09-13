@@ -1,0 +1,12 @@
+{
+  "plan": "plus",
+  "limits": {
+    "dailyRecommendations": null,
+    "photoScan": true,
+    "childProfiles": null,
+    "savedProjects": null
+  },
+  "usage": {
+    "recommendationsToday": 2
+  }
+}

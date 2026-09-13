@@ -4,7 +4,7 @@ import ScrapLabAPI
 struct ScrapLabAccessLoader: EntitlementsLoading {
     let baseURL: URL
 
-    init(baseURL: URL = URL(string: "https://scraplab-inky.vercel.app")!) {
+    init(baseURL: URL = AppEnvironment.apiBaseURL) {
         self.baseURL = baseURL
     }
 

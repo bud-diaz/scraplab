@@ -1,0 +1,10 @@
+{
+  "detectedMaterials": [
+    {
+      "materialId": "33333333-3333-3333-3333-333333333333",
+      "label": "Cardboard tube",
+      "confidence": 0.91
+    }
+  ],
+  "requiresConfirmation": true
+}

@@ -84,12 +84,48 @@ export function scanFrontendFetches(roots: string[]): FrontendFetch[] {
   return results
 }
 
-const SWIFT_API_PATH = /"(\/api\/(?:\\.|[^"\\])*)"/g
-const SWIFT_HTTP_METHOD = /(?:httpMethod|method)\s*:\s*(?:HttpMethod\s*\.\s*|\.\s*)?(GET|POST|PUT|PATCH|DELETE)\b/gi
+const SWIFT_ENDPOINT_CALL = /\bEndpoint\s*\(/g
+const SWIFT_API_PATH_ARGUMENT = /\bpath\s*:\s*"(\/api\/(?:\\.|[^"\\])*)"/
+const SWIFT_HTTP_METHOD_ARGUMENT = /\b(?:httpMethod|method)\s*:\s*(?:HttpMethod\s*\.\s*|\.\s*)?(GET|POST|PUT|PATCH|DELETE)\b/i
 
-/** Scans Swift sources for `/api/...` literals paired with a nearby HTTP method.
- * Swift string interpolations are normalized to the `${...}` form understood by
- * `pathsMatch`, so native endpoints use the same route contract as web fetches. */
+function findSwiftCallEnd(source: string, openParenIndex: number): number {
+  let depth = 0
+  let quote: '"' | null = null
+  let escaped = false
+
+  for (let i = openParenIndex; i < source.length; i++) {
+    const char = source[i]
+    if (quote) {
+      if (escaped) {
+        escaped = false
+      } else if (char === '\\') {
+        escaped = true
+      } else if (char === quote) {
+        quote = null
+      }
+      continue
+    }
+
+    if (char === '"') {
+      quote = '"'
+    } else if (char === '(') {
+      depth += 1
+    } else if (char === ')') {
+      depth -= 1
+      if (depth === 0) return i + 1
+    }
+  }
+  return -1
+}
+
+function normalizeSwiftAPIPath(path: string): string {
+  return path.replace(/\\\(([^)]*)\)/g, '${$1}').split('?')[0]
+}
+
+/** Scans Swift `Endpoint(...)` declarations for `/api/...` literals paired with
+ * the method inside the same initializer call. This deliberately avoids the old
+ * nearest-token heuristic, which could pair a path with the wrong nearby method
+ * after harmless formatting or comments. */
 export function scanSwiftEndpoints(root: string): FrontendFetch[] {
   if (!existsSync(root)) return []
 
@@ -99,32 +135,25 @@ export function scanSwiftEndpoints(root: string): FrontendFetch[] {
   )
   for (const file of files) {
     const source = readFileSync(file, 'utf8')
-    let pathMatch: RegExpExecArray | null
-    SWIFT_API_PATH.lastIndex = 0
-    while ((pathMatch = SWIFT_API_PATH.exec(source))) {
-      const windowStart = Math.max(0, pathMatch.index - 300)
-      const windowEnd = Math.min(source.length, pathMatch.index + pathMatch[0].length + 300)
-      const nearbySource = source.slice(windowStart, windowEnd)
-      const pathOffset = pathMatch.index - windowStart
-      let nearestMethod: { method: HttpMethod; distance: number } | null = null
-      let methodMatch: RegExpExecArray | null
-      SWIFT_HTTP_METHOD.lastIndex = 0
-      while ((methodMatch = SWIFT_HTTP_METHOD.exec(nearbySource))) {
-        const distance = Math.abs(methodMatch.index - pathOffset)
-        if (!nearestMethod || distance < nearestMethod.distance) {
-          nearestMethod = {
-            method: methodMatch[1].toUpperCase() as HttpMethod,
-            distance,
-          }
-        }
-      }
-      if (!nearestMethod) continue
+    let endpointMatch: RegExpExecArray | null
+    SWIFT_ENDPOINT_CALL.lastIndex = 0
+    while ((endpointMatch = SWIFT_ENDPOINT_CALL.exec(source))) {
+      const openParenIndex = endpointMatch.index + endpointMatch[0].lastIndexOf('(')
+      const callEnd = findSwiftCallEnd(source, openParenIndex)
+      if (callEnd === -1) continue
 
-      const path = pathMatch[1]
-        .replace(/\\\(([^)]*)\)/g, '${$1}')
-        .split('?')[0]
-      const line = source.slice(0, pathMatch.index).split('\n').length
-      results.push({ file, line, path, method: nearestMethod.method })
+      const callSource = source.slice(endpointMatch.index, callEnd)
+      const pathMatch = callSource.match(SWIFT_API_PATH_ARGUMENT)
+      const methodMatch = callSource.match(SWIFT_HTTP_METHOD_ARGUMENT)
+      if (!pathMatch || !methodMatch) continue
+
+      const line = source.slice(0, endpointMatch.index).split('\n').length
+      results.push({
+        file,
+        line,
+        path: normalizeSwiftAPIPath(pathMatch[1]),
+        method: methodMatch[1].toUpperCase() as HttpMethod,
+      })
     }
   }
   return results

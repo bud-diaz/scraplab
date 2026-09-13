@@ -1,0 +1,59 @@
+{
+  "activities": [
+    {
+      "id": "66666666-6666-6666-6666-666666666666",
+      "title": "Rocket Launcher Story",
+      "slug": "rocket-launcher-story",
+      "category": "storytelling",
+      "one_liner": "Turn a tube into a launch-day story.",
+      "description": "A guided pretend-play activity.",
+      "age_ranges": [
+        "6-8",
+        "family"
+      ],
+      "difficulty": "easy",
+      "time_minutes": 20,
+      "estimated_cleanup_minutes": 5,
+      "attention_span_fit": "short",
+      "energy_level": "moderate",
+      "solo_or_group": "solo",
+      "supervision_level": "some-help",
+      "environment": [
+        "table"
+      ],
+      "materials_required": [
+        "cardboard tube",
+        "paper"
+      ],
+      "materials_optional": [
+        "stickers"
+      ],
+      "scrap_tags": [
+        "tube"
+      ],
+      "theme_tags": [
+        "space"
+      ],
+      "skill_tags": [
+        "storytelling"
+      ],
+      "prompt_type": "guided",
+      "learning_angle": "sequencing",
+      "expansion_prompts": [
+        "What planet is next?"
+      ],
+      "safety_notes": [
+        "Avoid launching objects at faces."
+      ],
+      "hero_image_prompt": null,
+      "premium": false,
+      "featured": true,
+      "seasonal": null,
+      "inventory_friendly": true,
+      "remixable": true,
+      "created_at": "2026-09-11T12:34:56.123Z",
+      "project_id": "44444444-4444-4444-4444-444444444444"
+    }
+  ],
+  "total": 1
+}

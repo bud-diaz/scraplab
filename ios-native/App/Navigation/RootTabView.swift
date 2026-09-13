@@ -4,6 +4,14 @@ struct RootTabView: View {
     @Bindable var router: AppRouter
     @Bindable var session: SessionStore
     @Bindable var entitlements: EntitlementsStore
+    @State private var browseStore: BrowseStore
+
+    init(router: AppRouter, session: SessionStore, entitlements: EntitlementsStore) {
+        self.router = router
+        self.session = session
+        self.entitlements = entitlements
+        _browseStore = State(initialValue: BrowseStore(baseURL: AppEnvironment.apiBaseURL, session: session))
+    }
 
     var body: some View {
         TabView(selection: $router.selectedTab) {
@@ -42,11 +50,17 @@ struct RootTabView: View {
 
     private var createTab: some View {
         NavigationStack(path: $router.createPath) {
-            PlaceholderDestination(title: "Create", message: "Choose materials to begin when the create flow arrives.")
+            CreateMethodListView()
                 .navigationDestination(for: CreateRoute.self) { route in
                     switch route {
-                    case .manual: PlaceholderDestination(title: "Choose materials", message: "The manual material picker is not connected yet.")
-                    case .scan: PlaceholderDestination(title: "Scan materials", message: "Camera and photo selection are not connected yet.")
+                    case .manual:
+                        ManualMaterialPickerView(baseURL: AppEnvironment.apiBaseURL)
+                    case .scan:
+                        ScanView(baseURL: AppEnvironment.apiBaseURL, session: session, router: router)
+                    case .results(let materialIDs, let childAge):
+                        CreateResultsView(materialIDs: materialIDs, childAge: childAge, baseURL: AppEnvironment.apiBaseURL, session: session)
+                    case .activity(let slug):
+                        ActivityDetailView(idOrSlug: slug, baseURL: AppEnvironment.apiBaseURL, session: session, entitlements: entitlements)
                     }
                 }
         }
@@ -72,11 +86,13 @@ struct RootTabView: View {
 
     private var browseTab: some View {
         NavigationStack(path: $router.browsePath) {
-            PlaceholderDestination(title: "Browse", message: "Activities will load here when browse networking is connected.")
+            BrowseListView(store: browseStore)
                 .navigationDestination(for: BrowseRoute.self) { route in
                     switch route {
-                    case .explore(let slug): PlaceholderDestination(title: "Explore", message: "Requested activity: \(slug)")
-                    case .project: PlaceholderDestination(title: "Project", message: "Project details are not connected yet.")
+                    case .explore(let slug):
+                        ActivityDetailView(idOrSlug: slug, baseURL: AppEnvironment.apiBaseURL, session: session, entitlements: entitlements)
+                    case .project(let id):
+                        ProjectDetailView(idOrSlug: id.uuidString, baseURL: AppEnvironment.apiBaseURL, session: session, entitlements: entitlements)
                     }
                 }
         }

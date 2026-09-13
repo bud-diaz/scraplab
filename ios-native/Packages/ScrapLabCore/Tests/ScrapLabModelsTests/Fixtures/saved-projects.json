@@ -1,0 +1,36 @@
+{
+  "savedProjects": [
+    {
+      "id": "88888888-8888-8888-8888-888888888888",
+      "user_id": "11111111-1111-1111-1111-111111111111",
+      "project_id": "44444444-4444-4444-4444-444444444444",
+      "created_at": "2026-09-11T12:34:56.123Z",
+      "project": {
+        "id": "44444444-4444-4444-4444-444444444444",
+        "title": "Tube Rocket",
+        "slug": "tube-rocket",
+        "description": "Build a tiny rocket from a cardboard tube.",
+        "age_min": 5,
+        "age_max": 9,
+        "time_minutes": 25,
+        "cleanup_level": "low",
+        "supervision_level": "adult_assist",
+        "difficulty": "easy",
+        "safety_notes": [
+          "Use safety scissors."
+        ],
+        "instructions": [
+          {
+            "step": 1,
+            "instruction": "Cut fins.",
+            "tip": "Fold the paper first.",
+            "safety_note": "Grown-up handles sharp cuts."
+          }
+        ],
+        "image_url": null,
+        "premium_only": false,
+        "created_at": "2026-09-11T12:34:56.123Z"
+      }
+    }
+  ]
+}

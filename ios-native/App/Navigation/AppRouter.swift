@@ -3,7 +3,15 @@ import Observation
 
 enum AppTab: Hashable { case home, create, buildLog, browse, profile }
 enum HomeRoute: Hashable { case foundation }
-enum CreateRoute: Hashable { case manual, scan }
+enum CreateRoute: Hashable {
+    case manual, scan
+    case results(materialIDs: [UUID], childAge: Int)
+    /// Pushed from a `CreateResultsView` activity card. A separate case from
+    /// `BrowseRoute.explore` because `createPath`/`browsePath` are independently typed
+    /// per-tab navigation paths — pushing this keeps the detail screen inside the Create
+    /// tab's own stack instead of jumping the user over to Browse mid-flow.
+    case activity(slug: String)
+}
 enum BuildLogRoute: Hashable { case project(UUID), build(UUID) }
 enum BrowseRoute: Hashable { case explore(String), project(UUID) }
 enum ProfileRoute: Hashable { case settings }

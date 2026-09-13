@@ -11,6 +11,8 @@
     "test:api": "vitest run tests/api",
     "test:integration": "vitest run tests/integration",
     "test:e2e": "playwright test",
+    "audit:native-slugs": "node scripts/audit-native-slugs.mjs",
+    "fixtures:native:capture": "node scripts/capture-native-fixtures.mjs",
     "cap:sync": "cap sync ios",
     "cap:sync:dev": "CAP_ENV=dev cap sync ios",
     "cap:open": "cap open ios"

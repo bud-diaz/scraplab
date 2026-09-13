@@ -1,0 +1,52 @@
+{
+  "grouped": {
+    "paper": [
+      {
+        "id": "33333333-3333-3333-3333-333333333333",
+        "name": "Cardboard tube",
+        "aliases": [
+          "tube",
+          "roll"
+        ],
+        "category": "paper",
+        "icon": "🧻",
+        "created_at": "2026-09-11T12:34:56.123Z"
+      }
+    ],
+    "fasteners": [
+      {
+        "id": "33333333-3333-3333-3333-333333333334",
+        "name": "Tape",
+        "aliases": [
+          "masking tape"
+        ],
+        "category": "fasteners",
+        "icon": "🧷",
+        "created_at": "2026-09-11T12:34:56.123Z"
+      }
+    ]
+  },
+  "materials": [
+    {
+      "id": "33333333-3333-3333-3333-333333333333",
+      "name": "Cardboard tube",
+      "aliases": [
+        "tube",
+        "roll"
+      ],
+      "category": "paper",
+      "icon": "🧻",
+      "created_at": "2026-09-11T12:34:56.123Z"
+    },
+    {
+      "id": "33333333-3333-3333-3333-333333333334",
+      "name": "Tape",
+      "aliases": [
+        "masking tape"
+      ],
+      "category": "fasteners",
+      "icon": "🧷",
+      "created_at": "2026-09-11T12:34:56.123Z"
+    }
+  ]
+}

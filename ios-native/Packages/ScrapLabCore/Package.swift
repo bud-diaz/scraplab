@@ -14,7 +14,7 @@ let package = Package(
     targets: [
         .target(name: "ScrapLabModels"),
         .target(name: "ScrapLabAPI", dependencies: ["ScrapLabModels"]),
-        .testTarget(name: "ScrapLabModelsTests", dependencies: ["ScrapLabModels"]),
+        .testTarget(name: "ScrapLabModelsTests", dependencies: ["ScrapLabModels"], resources: [.process("Fixtures")]),
         .testTarget(name: "ScrapLabAPITests", dependencies: ["ScrapLabAPI", "ScrapLabModels"]),
     ],
     swiftLanguageModes: [.v6]

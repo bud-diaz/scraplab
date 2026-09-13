@@ -1,0 +1,64 @@
+{
+  "project": {
+    "id": "44444444-4444-4444-4444-444444444444",
+    "title": "Tube Rocket",
+    "slug": "tube-rocket",
+    "description": "Build a tiny rocket from a cardboard tube.",
+    "age_min": 5,
+    "age_max": 9,
+    "time_minutes": 25,
+    "cleanup_level": "low",
+    "supervision_level": "adult_assist",
+    "difficulty": "easy",
+    "safety_notes": [
+      "Use safety scissors."
+    ],
+    "instructions": [
+      {
+        "step": 1,
+        "instruction": "Cut fins.",
+        "tip": "Fold the paper first.",
+        "safety_note": "Grown-up handles sharp cuts."
+      }
+    ],
+    "image_url": null,
+    "premium_only": false,
+    "created_at": "2026-09-11T12:34:56.123Z",
+    "project_materials": [
+      {
+        "id": "55555555-5555-5555-5555-555555555555",
+        "project_id": "44444444-4444-4444-4444-444444444444",
+        "material_id": "33333333-3333-3333-3333-333333333333",
+        "required": true,
+        "quantity_note": "1 tube",
+        "material": {
+          "id": "33333333-3333-3333-3333-333333333333",
+          "name": "Cardboard tube",
+          "aliases": [
+            "tube",
+            "roll"
+          ],
+          "category": "paper",
+          "icon": "🧻",
+          "created_at": "2026-09-11T12:34:56.123Z"
+        }
+      }
+    ]
+  },
+  "substitutions": [
+    {
+      "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "source_material_id": "33333333-3333-3333-3333-333333333333",
+      "replacement_material_id": "33333333-3333-3333-3333-333333333334",
+      "substitution_notes": "Tape can hold fins in place.",
+      "source": {
+        "id": "33333333-3333-3333-3333-333333333333",
+        "name": "Cardboard tube"
+      },
+      "replacement": {
+        "id": "33333333-3333-3333-3333-333333333334",
+        "name": "Tape"
+      }
+    }
+  ]
+}

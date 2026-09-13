@@ -41,13 +41,15 @@ describe('endpoint contract: frontend fetch calls resolve to real routes', () =>
 })
 
 describe('inventory scanner regression guard', () => {
-  it('scans Swift endpoint literals and interpolations with their adjacent HTTP methods', () => {
+  it('scans Swift endpoint literals and interpolations with their initializer-scoped HTTP methods', () => {
     const root = mkdtempSync(join(tmpdir(), 'scraplab-swift-endpoints-'))
     const file = join(root, 'Endpoints.swift')
     writeFileSync(
       file,
       `
         enum Endpoints {
+          static let misleadingNearby = Endpoint(path: "/api/projects", method: .get)
+
           static let activities = Endpoint(
             path: "/api/activities?featured=true&limit=10",
             method: .get
@@ -56,6 +58,11 @@ describe('inventory scanner regression guard', () => {
           static func childProfile(id: UUID) -> Endpoint {
             Endpoint(method: .delete, path: "/api/child-profiles/\\(id)")
           }
+
+          static let multiline = Endpoint(
+            path: "/api/build-history/\\(id.uuidString)",
+            method: .patch
+          )
         }
       `,
     )
@@ -63,19 +70,52 @@ describe('inventory scanner regression guard', () => {
     try {
       const endpoints = scanSwiftEndpoints(root)
       expect(endpoints.map(({ path, method }) => ({ path, method }))).toEqual([
+        { path: '/api/projects', method: 'GET' },
         { path: '/api/activities', method: 'GET' },
         { path: '/api/child-profiles/${id}', method: 'DELETE' },
+        { path: '/api/build-history/${id.uuidString}', method: 'PATCH' },
       ])
 
       const routes = new Map<string, Set<HttpMethod>>([
+        ['/api/projects', new Set(['GET'] as const)],
         ['/api/activities', new Set(['GET'] as const)],
         ['/api/child-profiles/[id]', new Set(['DELETE'] as const)],
+        ['/api/build-history/[id]', new Set(['PATCH'] as const)],
       ])
       for (const endpoint of endpoints) {
         const match = findMatchingRoute(endpoint, routes)
         expect(match, `no backend route matches ${endpoint.method} ${endpoint.path}`).not.toBeNull()
         expect(match!.methods.has(endpoint.method)).toBe(true)
       }
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('rejects native billing checkout, billing portal, and webhook endpoints at scanner level', () => {
+    const root = mkdtempSync(join(tmpdir(), 'scraplab-forbidden-swift-endpoints-'))
+    const file = join(root, 'Endpoints.swift')
+    writeFileSync(
+      file,
+      `
+        enum Endpoints {
+          static let checkout = Endpoint(path: "/api/checkout", method: .post)
+          static let billingPortal = Endpoint(path: "/api/billing/portal", method: .post)
+          static let revenueCatWebhook = Endpoint(path: "/api/webhooks/revenuecat", method: .post)
+        }
+      `,
+    )
+
+    try {
+      const endpoints = scanSwiftEndpoints(root)
+      const forbidden = endpoints.filter(({ path }) =>
+        path === '/api/checkout' || path === '/api/billing/portal' || path.includes('/webhooks/'),
+      )
+      expect(forbidden.map(({ method, path }) => `${method} ${path}`)).toEqual([
+        'POST /api/checkout',
+        'POST /api/billing/portal',
+        'POST /api/webhooks/revenuecat',
+      ])
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

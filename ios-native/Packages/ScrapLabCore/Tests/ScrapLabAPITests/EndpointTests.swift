@@ -34,3 +34,12 @@ import Testing
     #expect(Endpoints.updateChildProfile(id).method == .patch)
     #expect(Endpoints.deleteChildProfile(id).method == .delete)
 }
+
+@Test func activityAndProjectEndpointsAcceptSlugsForDeepLinkLookup() {
+    #expect(Endpoints.activity("rocket-ship").path == "/api/activities/rocket-ship")
+    #expect(Endpoints.project("rocket-ship").path == "/api/projects/rocket-ship")
+
+    let id = UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")!
+    #expect(Endpoints.activity(id).path == Endpoints.activity(id.uuidString).path)
+    #expect(Endpoints.project(id).path == Endpoints.project(id.uuidString).path)
+}
