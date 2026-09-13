@@ -2,7 +2,7 @@ import ScrapLabModels
 import SwiftUI
 
 struct MaterialTileView: View {
-    let material: Material
+    let material: ScrapLabModels.Material
     let isSelected: Bool
     let onToggle: () -> Void
 

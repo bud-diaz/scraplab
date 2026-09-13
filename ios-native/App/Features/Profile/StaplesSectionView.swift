@@ -61,8 +61,8 @@ struct StaplesSectionView: View {
 }
 
 private struct AddStapleSheet: View {
-    let materials: [Material]
-    let onPick: (Material) -> Void
+    let materials: [ScrapLabModels.Material]
+    let onPick: (ScrapLabModels.Material) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var search = ""
 
@@ -88,7 +88,7 @@ private struct AddStapleSheet: View {
         }
     }
 
-    private var filteredMaterials: [Material] {
+    private var filteredMaterials: [ScrapLabModels.Material] {
         guard !search.isEmpty else { return materials }
         return materials.filter { $0.name.localizedCaseInsensitiveContains(search) }
     }

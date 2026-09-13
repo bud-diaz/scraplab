@@ -84,7 +84,7 @@ struct ManualMaterialPickerView: View {
         }
     }
 
-    private var selectedMaterials: [Material] {
+    private var selectedMaterials: [ScrapLabModels.Material] {
         store.materials.filter { store.selection.isSelected($0.id) }
     }
 
