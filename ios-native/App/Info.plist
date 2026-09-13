@@ -35,5 +35,8 @@
   <key>UISupportedInterfaceOrientations</key>
   <array><string>UIInterfaceOrientationPortrait</string></array>
   <key>UIUserInterfaceStyle</key><string>Light</string>
+  <key>ScrapLabSupabaseURL</key><string>$(SCRAPLAB_SUPABASE_URL)</string>
+  <key>ScrapLabSupabaseAnonKey</key><string>$(SCRAPLAB_SUPABASE_ANON_KEY)</string>
+  <key>ScrapLabRevenueCatIOSAPIKey</key><string>$(SCRAPLAB_REVENUECAT_IOS_API_KEY)</string>
 </dict>
 </plist>

@@ -11,20 +11,34 @@ struct ScrapLabApp: App {
     init() {
         SLFontRegistrar.registerBundledFonts()
         _router = State(initialValue: AppRouter())
-        _session = State(initialValue: SessionStore())
+        _session = State(initialValue: SessionStore(adapter: AppEnvironment.authAdapter))
         _entitlements = State(initialValue: EntitlementsStore(loader: ScrapLabAccessLoader()))
-        purchaseService = UnconfiguredPurchaseService()
+        purchaseService = AppEnvironment.purchaseService
     }
 
     var body: some Scene {
         WindowGroup {
-            RootTabView(router: router, session: session, entitlements: entitlements)
+            RootTabView(router: router, session: session, entitlements: entitlements, purchaseService: purchaseService)
                 .preferredColorScheme(.light)
                 .task {
                     await session.restore()
                     await refreshEntitlementsForCurrentSession()
                 }
-                .onOpenURL { router.open($0, isAuthenticated: session.isAuthenticated) }
+                .onOpenURL { url in
+                    if case .authCallback? = DeepLink(url: url) {
+                        Task {
+                            do {
+                                _ = try await session.handleAuthCallback(url)
+                                await refreshEntitlementsForCurrentSession()
+                                router.replayPendingLinkAfterAuthentication()
+                            } catch {
+                                router.open(url, isAuthenticated: session.isAuthenticated)
+                            }
+                        }
+                    } else {
+                        router.open(url, isAuthenticated: session.isAuthenticated)
+                    }
+                }
                 .onChange(of: session.isAuthenticated) { _, authenticated in
                     if authenticated {
                         router.replayPendingLinkAfterAuthentication()

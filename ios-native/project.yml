@@ -11,6 +11,12 @@ configs:
 packages:
   ScrapLabCore:
     path: Packages/ScrapLabCore
+  Supabase:
+    url: https://github.com/supabase/supabase-swift.git
+    from: 2.0.0
+  RevenueCat:
+    url: https://github.com/RevenueCat/purchases-ios.git
+    from: 5.0.0
 settings:
   base:
     DEVELOPMENT_TEAM: 6PA43G2WVX
@@ -62,6 +68,9 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UIUserInterfaceStyle: Light
+        ScrapLabSupabaseURL: $(SCRAPLAB_SUPABASE_URL)
+        ScrapLabSupabaseAnonKey: $(SCRAPLAB_SUPABASE_ANON_KEY)
+        ScrapLabRevenueCatIOSAPIKey: $(SCRAPLAB_REVENUECAT_IOS_API_KEY)
     configFiles:
       Debug: Config/Debug.xcconfig
       Release: Config/Release.xcconfig
@@ -77,6 +86,10 @@ targets:
         product: ScrapLabModels
       - package: ScrapLabCore
         product: ScrapLabAPI
+      - package: Supabase
+        product: Supabase
+      - package: RevenueCat
+        product: RevenueCat
     scheme:
       gatherCoverageData: true
       testTargets:

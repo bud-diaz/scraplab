@@ -48,7 +48,7 @@ struct ActivityCardView: View {
 extension Activity {
     static var preview: Activity {
         Activity(
-            id: UUID(), title: "Cardboard Rocket Ship", slug: "cardboard-rocket-ship", category: .engineering,
+            id: "SL-PREVIEW", title: "Cardboard Rocket Ship", slug: "cardboard-rocket-ship", category: .engineering,
             oneLiner: "Build a rocket from a shipping box and blast off into pretend space.", description: nil,
             ageRanges: [.sixToEight], difficulty: .medium, timeMinutes: 30, estimatedCleanupMinutes: 10,
             attentionSpanFit: "medium", energyLevel: .active, soloOrGroup: "solo", supervisionLevel: "independent",

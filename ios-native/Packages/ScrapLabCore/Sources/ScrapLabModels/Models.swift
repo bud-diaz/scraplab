@@ -226,7 +226,9 @@ public struct ActivityMatch: Codable, Equatable, Sendable {
 }
 
 public struct Activity: Codable, Equatable, Sendable {
-    public let id: UUID; public let title: String; public let slug: String; public let category: ActivityCategory
+    /// Activities use stable content ids like `SL-005`, not UUIDs. Only curated projects
+    /// and persistence rows use UUID primary keys.
+    public let id: String; public let title: String; public let slug: String; public let category: ActivityCategory
     public let oneLiner: String?; public let description: String?; public let ageRanges: [ActivityAgeRange]
     public let difficulty: ActivityDifficulty; public let timeMinutes: Int; public let estimatedCleanupMinutes: Int
     public let attentionSpanFit: String; public let energyLevel: ActivityEnergyLevel; public let soloOrGroup: String
@@ -240,7 +242,7 @@ public struct Activity: Codable, Equatable, Sendable {
 
     public var normalizedSupervisionLevel: SupervisionLevel? { SupervisionLevel.normalizedActivityLabel(supervisionLevel) }
 
-    public init(id: UUID, title: String, slug: String, category: ActivityCategory, oneLiner: String?, description: String?, ageRanges: [ActivityAgeRange], difficulty: ActivityDifficulty, timeMinutes: Int, estimatedCleanupMinutes: Int, attentionSpanFit: String, energyLevel: ActivityEnergyLevel, soloOrGroup: String, supervisionLevel: String, environment: [String], materialsRequired: [String], materialsOptional: [String], scrapTags: [String], themeTags: [String], skillTags: [String], promptType: String, learningAngle: String?, expansionPrompts: [String], safetyNotes: [String], heroImagePrompt: String?, premium: Bool, featured: Bool, seasonal: String?, inventoryFriendly: Bool, remixable: Bool, createdAt: Date, projectId: UUID?) {
+    public init(id: String, title: String, slug: String, category: ActivityCategory, oneLiner: String?, description: String?, ageRanges: [ActivityAgeRange], difficulty: ActivityDifficulty, timeMinutes: Int, estimatedCleanupMinutes: Int, attentionSpanFit: String, energyLevel: ActivityEnergyLevel, soloOrGroup: String, supervisionLevel: String, environment: [String], materialsRequired: [String], materialsOptional: [String], scrapTags: [String], themeTags: [String], skillTags: [String], promptType: String, learningAngle: String?, expansionPrompts: [String], safetyNotes: [String], heroImagePrompt: String?, premium: Bool, featured: Bool, seasonal: String?, inventoryFriendly: Bool, remixable: Bool, createdAt: Date, projectId: UUID?) {
         self.id = id; self.title = title; self.slug = slug; self.category = category; self.oneLiner = oneLiner; self.description = description; self.ageRanges = ageRanges; self.difficulty = difficulty; self.timeMinutes = timeMinutes; self.estimatedCleanupMinutes = estimatedCleanupMinutes; self.attentionSpanFit = attentionSpanFit; self.energyLevel = energyLevel; self.soloOrGroup = soloOrGroup; self.supervisionLevel = supervisionLevel; self.environment = environment; self.materialsRequired = materialsRequired; self.materialsOptional = materialsOptional; self.scrapTags = scrapTags; self.themeTags = themeTags; self.skillTags = skillTags; self.promptType = promptType; self.learningAngle = learningAngle; self.expansionPrompts = expansionPrompts; self.safetyNotes = safetyNotes; self.heroImagePrompt = heroImagePrompt; self.premium = premium; self.featured = featured; self.seasonal = seasonal; self.inventoryFriendly = inventoryFriendly; self.remixable = remixable; self.createdAt = createdAt; self.projectId = projectId
     }
 }

@@ -17,17 +17,10 @@ enum PurchaseServiceError: Error, LocalizedError, Equatable {
     }
 }
 
-/// Boundary a future RevenueCat adapter implements. Deliberately mirrors
-/// `AuthSessionAdapter`/`EntitlementsLoading` in `Services/`: the store below is written
-/// and testable-by-inspection against this protocol today, and swapping in the real
-/// `RevenueCat` SPM package later is a one-file change with no call-site edits.
-///
-/// Adding that real package cannot happen here: SwiftPM dependency resolution needs
-/// network access this environment doesn't have for third-party packages, and RevenueCat's
-/// SDK is Apple-platform-only, so it also can't be verified by the Linux `ScrapLabCore`
-/// package the way `ScrapLabAPI`/`ScrapLabModels` are. `Purchases.configure`, the App Store
-/// Connect subscription product, and the RevenueCat dashboard entitlement all have to be
-/// set up from Xcode/App Store Connect before this boundary can be implemented for real.
+/// Boundary implemented by `RevenueCatPurchaseService` in configured builds and
+/// `UnconfiguredPurchaseService` when local runtime keys are absent. The app keeps
+/// purchase UI and server sync decoupled from the SDK so tests and non-Xcode checks can
+/// still exercise the native billing flow without touching StoreKit.
 protocol PurchaseServicing: Sendable {
     /// Called once per sign-in with the Supabase user id, per the plan's fix for the
     /// RevenueCat identity bug: `Purchases.configure` anonymously at launch, then

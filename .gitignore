@@ -158,6 +158,7 @@ vite.config.ts.timestamp-*
 /ios-native/*.xcodeproj/
 /ios-native/*.xcworkspace/
 /ios-native/DerivedData/
+/ios-native/Config/Local.xcconfig
 /ios-native/build/
 /ios-native/.build/
 /ios-native/Packages/ScrapLabCore/.build/

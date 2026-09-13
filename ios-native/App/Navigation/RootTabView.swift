@@ -4,13 +4,15 @@ struct RootTabView: View {
     @Bindable var router: AppRouter
     @Bindable var session: SessionStore
     @Bindable var entitlements: EntitlementsStore
+    let purchaseService: any PurchaseServicing
     @State private var browseStore: BrowseStore
     @State private var libraryStore: LibraryStore
 
-    init(router: AppRouter, session: SessionStore, entitlements: EntitlementsStore) {
+    init(router: AppRouter, session: SessionStore, entitlements: EntitlementsStore, purchaseService: any PurchaseServicing) {
         self.router = router
         self.session = session
         self.entitlements = entitlements
+        self.purchaseService = purchaseService
         _browseStore = State(initialValue: BrowseStore(baseURL: AppEnvironment.apiBaseURL, session: session))
         _libraryStore = State(initialValue: LibraryStore(baseURL: AppEnvironment.apiBaseURL, session: session))
     }
@@ -114,7 +116,7 @@ struct RootTabView: View {
             .navigationDestination(for: ProfileRoute.self) { route in
                 switch route {
                 case .subscription:
-                    SubscriptionView(baseURL: AppEnvironment.apiBaseURL, session: session, entitlements: entitlements)
+                    SubscriptionView(baseURL: AppEnvironment.apiBaseURL, session: session, entitlements: entitlements, purchaseService: purchaseService)
                 case .mysteryBuild:
                     MysteryBuildView(baseURL: AppEnvironment.apiBaseURL, session: session, router: router)
                 case .challenges:
@@ -130,15 +132,23 @@ struct RootTabView: View {
         NavigationStack {
             switch sheet {
             case .signIn:
-                SLEmptyState(title: "Sign in", message: "Authentication is ready for a Supabase adapter; no session is simulated.", systemImage: "person.crop.circle", actionTitle: "Not now") { router.cancelAuthentication() }
+                AuthSheetView(session: session, entitlements: entitlements, router: router) {
+                    Task { await refreshEntitlementsAfterAuthentication() }
+                }
             case .upgrade:
-                SubscriptionView(baseURL: AppEnvironment.apiBaseURL, session: session, entitlements: entitlements)
+                SubscriptionView(baseURL: AppEnvironment.apiBaseURL, session: session, entitlements: entitlements, purchaseService: purchaseService)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) { Button("Close") { router.presentedSheet = nil } }
                     }
             case .authCallback:
                 SLEmptyState(title: "Confirming account", message: "The callback was received. Supabase session exchange will be connected next.", systemImage: "envelope.badge")
             }
+        }
+    }
+
+    private func refreshEntitlementsAfterAuthentication() async {
+        if let token = await session.currentAccessToken() {
+            await entitlements.refresh(accessToken: token)
         }
     }
 }

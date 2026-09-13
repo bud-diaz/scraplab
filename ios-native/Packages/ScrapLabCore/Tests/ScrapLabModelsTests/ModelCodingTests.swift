@@ -101,7 +101,7 @@ private func expectEncodedObject<T: Encodable>(_ value: T, checks: ([String: Any
 private extension Activity {
     static func fixture(supervisionLevel: String) -> Activity {
         Activity(
-            id: UUID(), title: "Test", slug: "test", category: .art,
+            id: "SL-TEST", title: "Test", slug: "test", category: .art,
             oneLiner: nil, description: nil, ageRanges: [.sixToEight],
             difficulty: .easy, timeMinutes: 10, estimatedCleanupMinutes: 2,
             attentionSpanFit: "short", energyLevel: .calm, soloOrGroup: "solo",

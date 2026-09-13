@@ -2,7 +2,50 @@
 
 Tracking file for work against [`NATIVE_IOS_REWRITE_PLAN.md`](./NATIVE_IOS_REWRITE_PLAN.md). Update this between commits and phase boundaries so the repo shows what is done, what is still Linux-verifiable, and what is blocked on macOS/Xcode.
 
-_Last updated: 2026-09-13 (continued session) on `feat/native-ios-foundation`._
+_Last updated: 2026-09-13 (actual auth + RevenueCat adapter slice) on `feat/native-ios-foundation`._
+
+## 2026-09-13 Actual Supabase auth + RevenueCat SDK adapter slice
+
+Started the real Phase 2/6 integration work from the device screenshots:
+
+- Fixed the live Browse crash shown on-device: `/api/activities` returns stable content ids like `SL-005`, not UUIDs. `Activity.id` is now `String`; the Linux Swift fixture was changed to `SL-005` first to reproduce the decode failure, then `ScrapLabCore` was fixed. `swift test` now passes 71/71 with the production-shaped id.
+- Added real Supabase wiring behind `AppAuthSessionAdapter`:
+  - email/password sign in
+  - email/password sign up
+  - 6-digit signup OTP confirmation
+  - password reset email
+  - deep-link callback session exchange for `scraplab://auth-callback`
+  - initial onboarding kid-profile POST through the existing authenticated `/api/child-profiles` endpoint
+- Replaced the placeholder sign-in sheet with `AuthSheetView`, so gated tabs now present a real auth flow instead of “Authentication is ready...” copy.
+- Added the real RevenueCat SDK package and `RevenueCatPurchaseService` behind the existing `PurchaseServicing` boundary:
+  - SDK configuration from build config
+  - `Purchases.logIn(supabaseUserId)` on auth
+  - current offering lookup
+  - monthly/default package purchase
+  - restore purchases
+  - Apple subscription-management URL
+  - RevenueCat logout on app sign-out
+- Added runtime config plumbing:
+  - `Info.plist` keys: `ScrapLabSupabaseURL`, `ScrapLabSupabaseAnonKey`, `ScrapLabRevenueCatIOSAPIKey`
+  - `Config/Base.xcconfig` placeholders with optional ignored `Config/Local.xcconfig`
+  - `.gitignore` entry for `ios-native/Config/Local.xcconfig`
+  - `Config/Runtime.example.md`
+  - double-clickable `ios-native/write-ios-runtime-config.command`
+
+Verification from Linux:
+
+| Command/check | Result |
+| --- | --- |
+| `docker run --rm -v "$PWD/ios-native/Packages/ScrapLabCore:/workspace:ro" -w /workspace swift:6.0-noble swift test --scratch-path /tmp/scraplab-build` | Passed: 71/71 |
+| `NODE_ENV=test npm test` | Passed: 17 files / 161 tests |
+| `npm run lint` | Passed with existing Next font warning only |
+| `npx tsc --noEmit` | Passed |
+| `NODE_ENV=test npx vitest run tests/api/route-inventory.test.ts --reporter=verbose` | Passed: 73/73 |
+| `make validate` in `ios-native/` | YAML, plists, and asset JSON valid |
+| `docker run ... swift -frontend -parse ios-native/App/**/*.swift` | Swift parser accepted all 72 app Swift files |
+| `git diff --check` + native endpoint grep for `api/checkout`/`billing/portal` | Passed |
+
+Still needs macOS/Xcode verification: this Linux box does not have `xcodegen` or `xcodebuild`, so `make gen` stops at `Install XcodeGen with: brew install xcodegen`. The next Mac pass must run `make gen`, resolve SPM packages, build, then device-test real Supabase sign-in/signup/OTP/reset and RevenueCat sandbox purchase/restore.
 
 ## 2026-09-13 First macOS/device verification pass (Phases 1–6)
 

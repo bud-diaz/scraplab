@@ -9,7 +9,7 @@ This is the non-code App Store checklist that should be closed before Phase 7 su
 - [ ] Confirm `https://scraplab.app/support` exists, or choose a different support URL for App Store Connect.
 - [ ] Confirm `privacy@scraplab.app` exists and is monitored, or update `src/app/privacy/page.tsx` before submission.
 - [ ] Confirm the support URL and privacy URL are entered in App Store Connect.
-- [ ] Confirm Supabase redirect allowlist includes `com.scraplab.app://auth-callback` before enabling native magic-link fallback.
+- [ ] Confirm Supabase redirect allowlist includes `scraplab://auth-callback` before enabling native magic-link fallback.
 - [ ] Do not enable Associated Domains until `scraplab.app` can serve a valid `apple-app-site-association` file.
 
 ## App Store Connect answers to carry forward

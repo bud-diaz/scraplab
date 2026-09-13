@@ -8,7 +8,7 @@ private func makeMaterial(id: UUID = UUID(), name: String, category: String) -> 
 
 private func makeActivity(timeMinutes: Int = 15, difficulty: ActivityDifficulty = .easy, ageRanges: [ActivityAgeRange] = [.sixToEight]) -> Activity {
     Activity(
-        id: UUID(), title: "Test Activity", slug: "test-activity", category: .art, oneLiner: nil, description: nil,
+        id: "SL-TEST", title: "Test Activity", slug: "test-activity", category: .art, oneLiner: nil, description: nil,
         ageRanges: ageRanges, difficulty: difficulty, timeMinutes: timeMinutes, estimatedCleanupMinutes: 5,
         attentionSpanFit: "medium", energyLevel: .calm, soloOrGroup: "solo", supervisionLevel: "independent",
         environment: [], materialsRequired: [], materialsOptional: [], scrapTags: [], themeTags: [], skillTags: [],
