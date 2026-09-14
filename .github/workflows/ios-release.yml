@@ -103,6 +103,13 @@ jobs:
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
         run: |
           echo "$APP_STORE_CONNECT_API_KEY_CONTENT" | base64 -D > AuthKey_pkcs8.p8
+          # Diagnostics only — none of this prints private key material, just PEM
+          # structure/length, to debug "bad end line" without ever seeing the secret.
+          echo "decoded byte count: $(wc -c < AuthKey_pkcs8.p8 | tr -d ' ')"
+          echo "decoded line count: $(wc -l < AuthKey_pkcs8.p8 | tr -d ' ')"
+          echo "first line: $(sed -n '1p' AuthKey_pkcs8.p8 | cat -A)"
+          echo "last line: $(tail -n 1 AuthKey_pkcs8.p8 | cat -A)"
+          echo "sha256: $(shasum -a 256 AuthKey_pkcs8.p8)"
           openssl ec -in AuthKey_pkcs8.p8 -out AuthKey.p8
           rm -f AuthKey_pkcs8.p8
 
