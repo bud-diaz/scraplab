@@ -6,14 +6,22 @@ import Foundation
 public struct BuildStepPlayerState: Equatable, Sendable {
     public let totalSteps: Int
     public private(set) var currentStep: Int
+    /// Spec §4.5's "Mark Done" control: a local, presentational checkmark on steps the
+    /// user has explicitly marked, distinct from `currentStep` (which only tracks
+    /// position, not completion) and never sent to the backend — progress persistence
+    /// already happens at the step-index/percent level via the existing PATCH.
+    public private(set) var markedDoneSteps: Set<Int>
 
-    public init(totalSteps: Int, currentStep: Int = 0) {
+    public init(totalSteps: Int, currentStep: Int = 0, markedDoneSteps: Set<Int> = []) {
         self.totalSteps = max(totalSteps, 0)
         self.currentStep = BuildStepPlayerState.clamp(currentStep, totalSteps: self.totalSteps)
+        self.markedDoneSteps = markedDoneSteps
     }
 
     public var isLastStep: Bool { totalSteps == 0 || currentStep == totalSteps - 1 }
     public var isFirstStep: Bool { currentStep == 0 }
+
+    public func isStepMarkedDone(_ index: Int) -> Bool { markedDoneSteps.contains(index) }
 
     /// Mirrors the web's `Math.round(current/total*100)` percent-done readout.
     public var progressPercent: Int {
@@ -29,6 +37,12 @@ public struct BuildStepPlayerState: Equatable, Sendable {
     public mutating func retreat() {
         guard !isFirstStep else { return }
         currentStep -= 1
+    }
+
+    /// Marks the current step done, then advances — the "Mark Done" button's behavior.
+    public mutating func markCurrentStepDone() {
+        markedDoneSteps.insert(currentStep)
+        advance()
     }
 
     private static func clamp(_ step: Int, totalSteps: Int) -> Int {

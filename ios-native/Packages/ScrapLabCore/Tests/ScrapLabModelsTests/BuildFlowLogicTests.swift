@@ -40,6 +40,22 @@ private func makeInventory(stapleFlag: Bool) -> HouseholdInventory {
     #expect(state.currentStep == 2)
 }
 
+@Test func buildStepPlayerStateMarkCurrentStepDoneChecksOffAndAdvances() {
+    var state = BuildStepPlayerState(totalSteps: 3)
+    #expect(!state.isStepMarkedDone(0))
+
+    state.markCurrentStepDone()
+    #expect(state.isStepMarkedDone(0))
+    #expect(state.currentStep == 1)
+
+    state.markCurrentStepDone()
+    state.markCurrentStepDone()
+    #expect(state.isStepMarkedDone(1))
+    #expect(state.isStepMarkedDone(2))
+    #expect(state.isLastStep)
+    #expect(state.currentStep == 2)
+}
+
 @Test func buildStepPlayerStateComputesRoundedPercent() {
     #expect(BuildStepPlayerState(totalSteps: 4, currentStep: 1).progressPercent == 25)
     #expect(BuildStepPlayerState(totalSteps: 3, currentStep: 1).progressPercent == 33)

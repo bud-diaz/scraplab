@@ -58,7 +58,7 @@ struct CreateResultsView: View {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: SLSpacing.x3) {
                         ForEach(store.filteredMatches, id: \.activity.id) { match in
                             NavigationLink(value: CreateRoute.activity(slug: match.activity.slug)) {
-                                ActivityCardView(activity: match.activity, matchLabel: match.matchLabel)
+                                ProjectCardView(activity: match.activity, matchLabel: match.matchLabel, layout: .compact)
                             }
                             .buttonStyle(.plain)
                         }

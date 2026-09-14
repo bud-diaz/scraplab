@@ -6,6 +6,7 @@ struct ScrapLabApp: App {
     @State private var router: AppRouter
     @State private var session: SessionStore
     @State private var entitlements: EntitlementsStore
+    @State private var onboarding: OnboardingStateStore
     private let purchaseService: any PurchaseServicing
 
     init() {
@@ -13,12 +14,21 @@ struct ScrapLabApp: App {
         _router = State(initialValue: AppRouter())
         _session = State(initialValue: SessionStore(adapter: AppEnvironment.authAdapter))
         _entitlements = State(initialValue: EntitlementsStore(loader: ScrapLabAccessLoader()))
+        _onboarding = State(initialValue: OnboardingStateStore())
         purchaseService = AppEnvironment.purchaseService
     }
 
     var body: some Scene {
         WindowGroup {
-            RootTabView(router: router, session: session, entitlements: entitlements, purchaseService: purchaseService)
+            Group {
+                if onboarding.shouldShowOnboarding {
+                    OnboardingFlowView { selectedAgeBand in
+                        onboarding.markCompleted(selectedAgeBand: selectedAgeBand)
+                    }
+                } else {
+                    RootTabView(router: router, session: session, entitlements: entitlements, purchaseService: purchaseService)
+                }
+            }
                 .preferredColorScheme(.light)
                 .task {
                     await session.restore()

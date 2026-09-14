@@ -15,24 +15,51 @@ public enum CreateAge {
     }
 }
 
+/// Spec §4.3's material-picker filter pills. `.byCategory` doesn't filter on its own —
+/// it defers to whatever the category chip row below has selected — since "by category"
+/// browsing is already the picker's existing `category` field, not a separate predicate.
+public enum MaterialQuickFilter: String, CaseIterable, Equatable, Sendable {
+    case all, recentlyUsed, householdStaples, byCategory
+
+    public var title: String {
+        switch self {
+        case .all: "All"
+        case .recentlyUsed: "Recently Used"
+        case .householdStaples: "Household Staples"
+        case .byCategory: "By Category"
+        }
+    }
+}
+
 /// Client-side search/category filtering over `GET /api/materials`, which only supports
 /// a server-side `category` filter (see `src/app/api/materials/route.ts`) — search is a
 /// UI-only concern on both the web and native clients.
 public struct MaterialCatalogFilter: Equatable, Sendable {
     public var searchText: String
     public var category: String?
+    public var quickFilter: MaterialQuickFilter
 
-    public init(searchText: String = "", category: String? = nil) {
+    public init(searchText: String = "", category: String? = nil, quickFilter: MaterialQuickFilter = .all) {
         self.searchText = searchText
         self.category = category
+        self.quickFilter = quickFilter
     }
 
-    public func apply(to materials: [Material]) -> [Material] {
+    /// `recentlyUsedIDs`/`householdStapleIDs` are native-only, locally-tracked sets (see
+    /// `ManualMaterialPickerStore`) — the backend has no "recently used" or per-material
+    /// staple concept beyond `HouseholdInventory.stapleFlag`.
+    public func apply(to materials: [Material], recentlyUsedIDs: Set<UUID> = [], householdStapleIDs: Set<UUID> = []) -> [Material] {
         let needle = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return materials.filter { material in
             let matchesCategory = category == nil || material.category == category
             let matchesSearch = needle.isEmpty || material.name.lowercased().contains(needle)
-            return matchesCategory && matchesSearch
+            let matchesQuickFilter: Bool
+            switch quickFilter {
+            case .all, .byCategory: matchesQuickFilter = true
+            case .recentlyUsed: matchesQuickFilter = recentlyUsedIDs.contains(material.id)
+            case .householdStaples: matchesQuickFilter = householdStapleIDs.contains(material.id)
+            }
+            return matchesCategory && matchesSearch && matchesQuickFilter
         }
     }
 

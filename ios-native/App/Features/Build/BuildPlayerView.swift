@@ -72,7 +72,18 @@ struct BuildPlayerView: View {
 
     private func stepCard(project: ProjectWithMaterials, step: BuildStep) -> some View {
         VStack(alignment: .leading, spacing: SLSpacing.x3) {
-            StepIllustrationView(action: StepIllustrationAction(stepTitle: step.instruction))
+            ZStack(alignment: .topTrailing) {
+                StepIllustrationView(action: StepIllustrationAction(stepTitle: step.instruction))
+                if store.stepState.isStepMarkedDone(store.stepState.currentStep) {
+                    ZStack {
+                        Circle().fill(SLColor.leaf)
+                        Image(systemName: "checkmark").font(.system(size: 12, weight: .bold)).foregroundStyle(.white)
+                    }
+                    .frame(width: 26, height: 26)
+                    .overlay(Circle().stroke(Color.white, lineWidth: 1.5))
+                    .offset(x: 6, y: -6)
+                }
+            }
             Text("Step \(step.step)").font(SLFont.caption).foregroundStyle(SLColor.mutedText)
             Text(step.instruction).font(SLFont.title2).foregroundStyle(SLColor.ink)
             if let tip = step.tip {
@@ -96,7 +107,7 @@ struct BuildPlayerView: View {
                     .disabled(store.stepState.isFirstStep)
 
                 if store.stepState.isLastStep {
-                    Button("Complete Build 🎉") {
+                    Button("Complete Build") {
                         Task {
                             if await store.complete() {
                                 router.buildLogPath.append(.complete(projectId: project.id))
@@ -105,7 +116,7 @@ struct BuildPlayerView: View {
                     }
                     .buttonStyle(.scrapLab())
                 } else {
-                    Button("Next") { store.advance() }
+                    Button("Mark Done") { store.markCurrentStepDone() }
                         .buttonStyle(.scrapLab())
                 }
             }

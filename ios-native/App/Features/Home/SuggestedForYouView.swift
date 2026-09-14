@@ -24,31 +24,13 @@ struct SuggestedForYouView: View {
                         Button {
                             onSelect(activity)
                         } label: {
-                            compactCard(for: activity)
+                            ProjectCardView(activity: activity, layout: .compact)
+                                .frame(width: 180)
                         }
                         .buttonStyle(.plain)
                     }
                 }
             }
         }
-    }
-
-    private func compactCard(for activity: Activity) -> some View {
-        VStack(alignment: .leading, spacing: SLSpacing.x2) {
-            Text(ActivityCategoryTheme.emoji(for: activity.category))
-                .font(.system(size: 28))
-                .frame(width: 140, height: 80)
-                .background(SLColor.cream100)
-            Text(activity.title)
-                .font(SLFont.callout.weight(.semibold))
-                .foregroundStyle(SLColor.ink)
-                .lineLimit(2)
-                .frame(width: 140, alignment: .leading)
-            MetadataChip(label: "\(activity.timeMinutes) min", systemImage: "clock")
-        }
-        .padding(SLSpacing.x2)
-        .background(SLColor.surface, in: RoundedRectangle(cornerRadius: SLRadius.largeCard))
-        .clipShape(RoundedRectangle(cornerRadius: SLRadius.largeCard))
-        .slShadow()
     }
 }

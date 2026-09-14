@@ -36,26 +36,20 @@ struct BuildCompleteView: View {
     }
 
     private func celebration(project: ProjectWithMaterials) -> some View {
-        VStack(spacing: 0) {
+        HeroSheetContainer {
             ZStack {
-                SLColor.hero.ignoresSafeArea(edges: .top)
                 confetti
                 VStack(spacing: SLSpacing.x3) {
-                    Text(ProjectDisplayTheme.theme(for: project.slug).emoji)
-                        .font(.system(size: 44))
-                        .frame(width: 88, height: 88)
-                        .background(.white, in: Circle())
+                    FlatVectorMascotView(pose: .celebrate)
+                        .frame(width: 96, height: 96)
                     Text("Built it. Nice.").font(SLFont.largeTitle).foregroundStyle(.white)
                     Text(project.title).font(SLFont.title2).foregroundStyle(.white.opacity(0.9))
                 }
                 .padding(SLSpacing.x8)
             }
-            .frame(height: 280)
-
+        } sheetContent: {
             actions(title: nil)
                 .padding(.top, SLSpacing.x6)
-                .background(SLColor.pageBackground, in: RoundedRectangle(cornerRadius: SLRadius.sheetTop))
-                .offset(y: -SLRadius.sheetTop)
         }
     }
 

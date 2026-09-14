@@ -25,7 +25,9 @@ struct RootTabView: View {
             browseTab.tabItem { Label("Browse", systemImage: "safari") }.tag(AppTab.browse)
             profileTab.tabItem { Label("Profile", systemImage: "person") }.tag(AppTab.profile)
         }
-        .tint(SLColor.primary)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            FloatingTabBar(selection: $router.selectedTab)
+        }
         .sheet(item: $router.presentedSheet) { sheet in
             sheetView(sheet)
                 .presentationCornerRadius(SLRadius.sheetTop)
@@ -40,6 +42,7 @@ struct RootTabView: View {
                     switch route { case .foundation: FoundationDemoView(entitlements: entitlements) }
                 }
         }
+        .toolbar(.hidden, for: .tabBar)
     }
 
     private var createTab: some View {
@@ -48,7 +51,7 @@ struct RootTabView: View {
                 .navigationDestination(for: CreateRoute.self) { route in
                     switch route {
                     case .manual:
-                        ManualMaterialPickerView(baseURL: AppEnvironment.apiBaseURL)
+                        ManualMaterialPickerView(baseURL: AppEnvironment.apiBaseURL, session: session)
                     case .scan:
                         ScanView(baseURL: AppEnvironment.apiBaseURL, session: session, router: router)
                     case .results(let materialIDs, let childAge):
@@ -58,6 +61,7 @@ struct RootTabView: View {
                     }
                 }
         }
+        .toolbar(.hidden, for: .tabBar)
     }
 
     private var buildLogTab: some View {
@@ -80,6 +84,7 @@ struct RootTabView: View {
                 }
             }
         }
+        .toolbar(.hidden, for: .tabBar)
     }
 
     private var browseTab: some View {
@@ -94,6 +99,7 @@ struct RootTabView: View {
                     }
                 }
         }
+        .toolbar(.hidden, for: .tabBar)
     }
 
     /// Matches the `scraplab://build/<uuid>` deep link's own behavior: starting a build
@@ -126,6 +132,7 @@ struct RootTabView: View {
                 }
             }
         }
+        .toolbar(.hidden, for: .tabBar)
     }
 
     @ViewBuilder private func sheetView(_ sheet: AppSheet) -> some View {

@@ -72,6 +72,12 @@ final class BuildPlayerStore {
         reportProgress(UpdateBuildProgressRequest(currentStep: stepState.currentStep))
     }
 
+    /// Spec §4.5's "Mark Done" control — checks off the current step, then advances.
+    func markCurrentStepDone() {
+        stepState.markCurrentStepDone()
+        reportProgress(UpdateBuildProgressRequest(currentStep: stepState.currentStep))
+    }
+
     func retreat() {
         stepState.retreat()
         reportProgress(UpdateBuildProgressRequest(currentStep: stepState.currentStep))

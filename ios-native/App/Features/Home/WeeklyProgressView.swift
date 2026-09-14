@@ -16,7 +16,7 @@ struct WeeklyProgressView: View {
                 .font(SLFont.title2)
                 .foregroundStyle(SLColor.ink)
             ProgressView(value: summary.progressFraction)
-                .tint(SLColor.primary)
+                .tint(SLColor.hero)
             Text(summary.footerMessage(isSignedIn: isSignedIn))
                 .font(SLFont.caption)
                 .foregroundStyle(SLColor.bodyText)

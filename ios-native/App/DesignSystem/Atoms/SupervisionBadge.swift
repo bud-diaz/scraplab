@@ -46,7 +46,7 @@ struct SupervisionBadge: View {
             .foregroundStyle(level?.tint ?? SLColor.bodyText)
             .padding(.horizontal, SLSpacing.x3)
             .padding(.vertical, SLSpacing.x2)
-            .background((level?.fill ?? SLColor.kraft500).opacity(0.15), in: Capsule())
+            .background(SLColor.softFill(level?.fill ?? SLColor.kraft500), in: Capsule())
     }
 }
 

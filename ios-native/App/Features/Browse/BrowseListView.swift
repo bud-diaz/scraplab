@@ -49,7 +49,7 @@ struct BrowseListView: View {
             LazyVStack(spacing: SLSpacing.x4) {
                 ForEach(store.activities, id: \.id) { activity in
                     NavigationLink(value: BrowseRoute.explore(activity.slug)) {
-                        ActivityCardView(activity: activity)
+                        ProjectCardView(activity: activity, layout: .full)
                     }
                     .buttonStyle(.plain)
                     .task { await store.loadMoreIfNeeded(after: activity) }

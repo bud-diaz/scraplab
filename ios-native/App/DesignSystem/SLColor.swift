@@ -41,6 +41,8 @@ enum SLColor {
     static let charcoal800 = Color(hex: 0x34344A)
     static let charcoal900 = Color(hex: 0x1C1C28)
 
+    static let mist = Color(hex: 0xF4F4F8)
+
     static let leaf = Color(hex: 0x5FBF7A)
     static let leafText = Color(hex: 0x2E7D46)
     static let caution = Color(hex: 0xF2A93B)
@@ -58,6 +60,13 @@ enum SLColor {
     static let bodyText = walnut600
     static let mutedText = kraft600
     static let line = kraft300
+    static let fieldFill = mist
+
+    /// Shared low-opacity tint used by soft-filled chips/badges (Reality Indicators,
+    /// SupervisionBadge) so every "traffic light" surface uses identical tint math.
+    static func softFill(_ color: Color) -> Color {
+        color.opacity(0.15)
+    }
 }
 
 extension Color {

@@ -15,13 +15,17 @@ struct QuickNavRowView: View {
             HStack(spacing: SLSpacing.x3) {
                 ForEach(items, id: \.title) { item in
                     Button(action: item.action) {
-                        VStack(spacing: SLSpacing.x1) {
-                            Image(systemName: item.icon).font(.title3)
-                            Text(item.title).font(SLFont.caption)
+                        VStack(spacing: SLSpacing.x2) {
+                            Image(systemName: item.icon)
+                                .font(.title3)
+                                .foregroundStyle(item.isEnabled ? SLColor.ink : SLColor.mutedText)
+                                .frame(width: 56, height: 56)
+                                .background(SLColor.surface, in: Circle())
+                            Text(item.title)
+                                .font(SLFont.caption)
+                                .foregroundStyle(item.isEnabled ? SLColor.ink : SLColor.mutedText)
                         }
-                        .frame(width: 72, height: 64)
-                        .foregroundStyle(item.isEnabled ? SLColor.ink : SLColor.mutedText)
-                        .background(SLColor.surface, in: RoundedRectangle(cornerRadius: SLRadius.card))
+                        .frame(width: 72)
                     }
                     .buttonStyle(.plain)
                     .disabled(!item.isEnabled)

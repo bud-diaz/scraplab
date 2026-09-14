@@ -2,7 +2,130 @@
 
 Tracking file for work against [`NATIVE_IOS_REWRITE_PLAN.md`](./NATIVE_IOS_REWRITE_PLAN.md). Update this between commits and phase boundaries so the repo shows what is done, what is still Linux-verifiable, and what is blocked on macOS/Xcode.
 
-_Last updated: 2026-09-13 (actual auth + RevenueCat adapter slice) on `feat/native-ios-foundation`._
+_Last updated: 2026-09-13 (visual redesign against new_scraplab-design-spec.md) on `feat/native-ios-foundation`._
+
+## 2026-09-13 Visual redesign against `new_scraplab-design-spec.md`
+
+Restyled the already-functionally-complete app (every tab already showed real content,
+per the slices below) to match the new two-mode design spec — bold blue "hero" chrome for
+onboarding/milestone moments, calm lavender "everyday" chrome for daily-use screens. This
+was a layout/anatomy pass, not a token rebuild: `SLColor`/`SLFont` already matched the
+spec's exact hex values and font choices before this slice started (confirmed by direct
+comparison — blue, lavender, orange, leaf/caution/coral/sunshine, Baloo 2/Inter were
+already correct). Work landed in eight ordered slices:
+
+- **Design system foundation**: added the one missing color (`SLColor.mist`, `#F4F4F8`,
+  now used for chip fills and `AuthSheetView`'s input field backgrounds), switched
+  `MetadataChip` to a soft-filled (not outlined) capsule per spec, extracted a shared
+  `SLColor.softFill(_:)` helper so `SupervisionBadge` uses identical tint math, added a
+  real concave-curve `Shape` (`HeroHeaderCurve`) and a reusable `HeroSheetContainer` (hero
+  content over a curved everyday-chrome sheet, generalizing what `BuildCompleteView` used
+  to do with an inline rounded-rect-overlap trick), added a flat-vector `Canvas`-drawn
+  mascot (`FlatVectorMascotView`, `MascotPose`: `.wave`/`.celebrate`/`.thinking`/`.empty`,
+  same technique as the existing `StepIllustrationView`), and fixed `LaunchBackground` from
+  a stale kraft/tan `#F8F3EA` to the everyday lavender `cream50`.
+- **Floating bottom navigation**: replaced stock `TabView` chrome with a custom
+  `FloatingTabBar` (pill shape, filled Craft Orange circle behind the active icon), hiding
+  the native bar per-tab via `.toolbar(.hidden, for: .tabBar)` and reserving space for the
+  floating bar via `.safeAreaInset(edge: .bottom)` on the `TabView` (not `.overlay`, so the
+  existing sticky bottom bars in the manual material picker and build player still stop
+  above it instead of colliding with it). All 5 tabs kept, including Create — the spec's
+  literal 4-icon list was not followed here, per an explicit lower-risk-first decision.
+- **Onboarding/hero flow (new)**: this did not exist at all before — the app jumped
+  straight into the tab shell on first launch. Added `WelcomeView` (full-bleed blue hero,
+  mascot, speech-bubble value prop) and `AgeBandCarouselView` (view-aligned horizontal
+  carousel of Little Builder 3–5 / Junior Maker 6–8 / Master Crafter 9–10 cards, active
+  card enlarged), gated behind a `UserDefaults`-backed `OnboardingStateStore` shown once on
+  first launch only, independent of auth so guest browsing is unaffected. The age-band pick
+  is local-only UI state, not a backend write — the real, backend-persisted child-profile
+  step already living inside `AuthSheetView`'s post-signup flow is untouched.
+- **Card anatomy overhaul**: replaced the old compact horizontal-row `ActivityCardView`
+  with `ProjectCardView` (`.full`/`.compact` layouts sharing one anatomy: illustration top,
+  title + age row, description, CTA), built around a new `RealityIndicatorRow` atom whose
+  three parameters (time/cleanup/supervision) are non-optional so a card cannot compile
+  without the "always visible, never behind a tap" indicator row the spec requires. Added
+  `CleanupLevel.from(estimatedCleanupMinutes:)` — a native-only Low/Medium/High bucketing,
+  since `Activity` only stores raw minutes (the real `cleanup_level` enum only exists on
+  `ProjectWithMaterials` in the backend schema; checked the web source directly rather than
+  assuming). Repointed Browse, Create's results grid, and Home's "Suggested For You" row
+  onto the shared card.
+- **Home dashboard restyle**: quick-nav row switched from square tiles to circular icon
+  badges; weekly-progress bar tint switched from orange to the hero blue (the one
+  spec-sanctioned small blue accent on an everyday screen — a tinted progress bar, not
+  chrome); removed the leftover "Open foundation demo" debug button from the production
+  scroll flow (now `#if DEBUG`-gated).
+- **Material picker restyle**: added an explicit check-badge overlay to `MaterialTileView`
+  for the selected state (spec's "orange border + check badge"), switched the grid to a
+  true fixed 4-column layout, and added the full `All · Recently Used · Household Staples ·
+  By Category` filter-pill row. "Recently used" has no backend concept on either platform —
+  checked the web source and confirmed it doesn't exist there either — so it's tracked
+  natively as a capped, most-recent-first `UserDefaults` list, distinct from "Household
+  Staples" which is real backend data (`HouseholdInventory.stapleFlag`, now fetched by
+  `ManualMaterialPickerStore` the same way `HomeStore` already fetches it for guests-return-
+  empty behavior).
+- **Guided build + milestone completion**: added real local "Mark Done" state
+  (`BuildStepPlayerState.markCurrentStepDone()` in `ScrapLabCore`, plus a checkmark overlay
+  on the step card) rather than a copy-only rename — the center control now reads "Mark
+  Done" on non-final steps and "Complete Build" on the last one. `BuildCompleteView` now
+  builds its celebration from the new `HeroSheetContainer` + `FlatVectorMascotView(.celebrate)`
+  instead of its old bespoke `ZStack`/offset trick; the existing `sunshine`-colored confetti
+  was left as-is (already purely celebratory, never a persistent counter).
+- **Sweep**: grepped for hardcoded corner radii outside `SLRadius.*` (only hits are
+  sub-pixel illustration details inside `StepIllustrationView`'s `Canvas` drawing code, not
+  UI chrome — expected, left alone), confirmed `SLColor.sunshine` only ever appears in
+  celebratory/status-badge contexts, confirmed `SLColor.mist` is actually used (chips +
+  `AuthSheetView` input fields), and confirmed the new Create-tab filter pills didn't leak
+  into Browse's toolbar (spec §6's "no dense category tab bar" rule stays intact).
+
+Verification from Linux:
+
+| Command/check | Result |
+| --- | --- |
+| `docker run --rm -v "$PWD/ios-native/Packages/ScrapLabCore:/workspace:ro" -w /workspace swift:6.0-noble swift test --scratch-path /tmp/scraplab-build` | Passed: 77/77 (up from 71 — 6 new tests: onboarding age-band/policy logic, cleanup-level bucketing, material quick-filter predicate, mark-done step logic) |
+| `docker run ... swift -frontend -parse` over every file in `ios-native/App` (81 files, up from 72; net +9: 8 new files, 1 deleted `ActivityCardView.swift`) | Passed — syntax only, does **not** type-check the new `TabView`-bar-hiding, `HeroSheetContainer`, `Canvas` mascot, or `.scrollTargetBehavior`/`.scrollPosition` carousel code |
+| `make validate` in `ios-native/` | Passed: YAML, plists, and asset JSON (including the `LaunchBackground` color edit) structurally valid |
+| `git diff --check` | Passed |
+| Manual grep guards: no `fatalError`/`try!` in `ios-native/App`, no `checkout`/`billing/portal` references, no hardcoded `cornerRadius:` outside illustration code, `sunshine` only in celebratory contexts | Passed |
+
+**Mac-side work required before any of this is real** — this is a large, purely-visual
+slice with the same standing caveat every prior phase has hit: Linux cannot type-check
+SwiftUI, Observation macros, or UIKit/PhotosUI usage, only parse syntax. In rough risk
+order:
+
+1. `FloatingTabBar`/the `.toolbar(.hidden, for: .tabBar)` + `.safeAreaInset(edge: .bottom)`
+   combination has no precedent anywhere else in this codebase — confirm the native tab bar
+   chrome actually disappears on first `xcodebuild build`, confirm the floating bar doesn't
+   fight the keyboard on the manual picker's/Browse's `.searchable` fields or the manual
+   picker's own sticky bottom CTA bar, and confirm tapping tabs mid-navigation doesn't leave
+   stale `NavigationStack` state.
+2. `AgeBandCarouselView`'s `.scrollTargetBehavior(.viewAligned)` + `.scrollPosition(id:)` +
+   per-card `.scaleEffect`/`.animation` combination is untested iOS 17 API surface for this
+   project — confirm it actually snaps and scales the way it reads in source.
+3. `HeroHeaderCurve`'s bezier math is a first-pass judgment call with no visual reference —
+   confirm the curve reads as "soft," not too sharp or too shallow, on both `WelcomeView`
+   and the redesigned `BuildCompleteView`.
+4. `FlatVectorMascotView`'s four poses are composed from primitive SwiftUI shapes with
+   rotation/anchor math that has never rendered on a real screen — confirm the silhouette
+   actually reads as a friendly robot rather than an abstract shape pile, in all four poses
+   (`WelcomeView`, `AgeBandCarouselView`, `BuildCompleteView`, and any future empty-state use).
+5. `ProjectCardView`'s full vs. compact anatomy needs a real-width/Dynamic-Type check —
+   specifically whether the bottom-right CTA button ever collides with the Reality
+   Indicators row at narrow widths or larger text sizes.
+6. `ManualMaterialPickerStore`'s new household-inventory fetch and `UserDefaults`-backed
+   recently-used tracking need an on-device check with a real signed-in account: toggle a
+   material, confirm it shows under "Recently Used" on next open; toggle a household staple
+   elsewhere (Profile) and confirm it shows under "Household Staples" here.
+7. `BuildPlayerView`'s renamed "Mark Done"/"Complete Build" controls and the new step-card
+   checkmark overlay need a full on-device loop: start a build, mark steps done, confirm the
+   checkmark shows on the right step and clears correctly on Back, complete, confirm
+   `BuildCompleteView`'s `.navigationBarBackButtonHidden(true)` still holds after the
+   `HeroSheetContainer` swap (a Phase 5 open item this slice deliberately did not regress
+   further, but also has not yet re-verified).
+8. Full first-launch walkthrough end to end: fresh install → `WelcomeView` → age-band
+   carousel → Home (circular quick-nav, blue-tinted weekly progress) → Browse (full card
+   anatomy) → Create/manual picker (4-column grid, check badges, filter pills) → start a
+   build → mark steps done → complete → hero celebration → floating tab bar throughout.
+   None of this has ever rendered on a screen.
 
 ## 2026-09-13 Actual Supabase auth + RevenueCat SDK adapter slice
 
@@ -495,6 +618,7 @@ The macOS blocker is resolved. Verified on the project's Hackintosh build host (
 | API contract scanner | Implemented | Web + Swift endpoints checked against Next.js routes |
 | CI | Added | Path-filtered macOS workflow, pending real GitHub/macOS run |
 | macOS/Xcode | Unblocked for device workflow, but stale | Phase 1's build/sign/install/launch/test all worked on physical device; that verification predates every Browse/detail file below and must be rerun |
+| Visual redesign (against `new_scraplab-design-spec.md`) | Written, Linux-verified, zero Xcode verification | Floating tab bar, onboarding flow, new card anatomy, restyled Home/material-picker/build-complete — see this file's newest dated entry above for the full list and Mac-side checklist |
 | Commit state | Worktree modified | `.hermes/` remains untracked and should not be committed; current native/status changes are not committed |
 
 ## Completed in current foundation slice

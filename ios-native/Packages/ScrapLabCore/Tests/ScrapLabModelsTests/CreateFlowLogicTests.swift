@@ -34,6 +34,26 @@ private func makeActivity(timeMinutes: Int = 15, difficulty: ActivityDifficulty 
     #expect(MaterialCatalogFilter(category: "craft-supplies").apply(to: [cardboard, glitter]) == [glitter])
 }
 
+@Test func materialCatalogFilterQuickFilterNarrowsToRecentOrStapleMaterials() {
+    let cardboardID = UUID()
+    let glitterID = UUID()
+    let cardboard = makeMaterial(id: cardboardID, name: "Cardboard Box", category: "recyclables")
+    let glitter = makeMaterial(id: glitterID, name: "Glitter", category: "craft-supplies")
+    let materials = [cardboard, glitter]
+
+    var filter = MaterialCatalogFilter(quickFilter: .all)
+    #expect(filter.apply(to: materials).count == 2)
+
+    filter.quickFilter = .byCategory
+    #expect(filter.apply(to: materials).count == 2)
+
+    filter.quickFilter = .recentlyUsed
+    #expect(filter.apply(to: materials, recentlyUsedIDs: [cardboardID]) == [cardboard])
+
+    filter.quickFilter = .householdStaples
+    #expect(filter.apply(to: materials, householdStapleIDs: [glitterID]) == [glitter])
+}
+
 @Test func materialCatalogFilterDerivesCategoriesInFirstSeenOrder() {
     let materials = [
         makeMaterial(name: "A", category: "recyclables"),

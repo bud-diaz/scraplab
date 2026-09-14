@@ -53,9 +53,11 @@ struct HomeView: View {
                     }
                 )
 
+                #if DEBUG
                 Divider()
                 Button("Open foundation demo") { router.homePath.append(.foundation) }
                     .buttonStyle(.scrapLab(.secondary, size: .compact))
+                #endif
             }
             .padding(SLSpacing.x4)
         }

@@ -305,10 +305,6 @@ private extension View {
         padding(SLSpacing.x4)
             .font(SLFont.body)
             .foregroundStyle(SLColor.ink)
-            .background(SLColor.surface, in: RoundedRectangle(cornerRadius: SLRadius.card))
-            .overlay {
-                RoundedRectangle(cornerRadius: SLRadius.card)
-                    .stroke(SLColor.line, lineWidth: 1)
-            }
+            .background(SLColor.fieldFill, in: RoundedRectangle(cornerRadius: SLRadius.card))
     }
 }

@@ -16,8 +16,7 @@ struct MetadataChip: View {
         .foregroundStyle(SLColor.bodyText)
         .padding(.horizontal, SLSpacing.x3)
         .padding(.vertical, SLSpacing.x2)
-        .background(SLColor.surface, in: Capsule())
-        .overlay(Capsule().stroke(SLColor.line))
+        .background(SLColor.mist, in: Capsule())
     }
 }
 

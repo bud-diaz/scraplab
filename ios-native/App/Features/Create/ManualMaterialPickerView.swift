@@ -4,11 +4,11 @@ import SwiftUI
 struct ManualMaterialPickerView: View {
     @State private var store: ManualMaterialPickerStore
 
-    init(baseURL: URL) {
-        _store = State(initialValue: ManualMaterialPickerStore(baseURL: baseURL))
+    init(baseURL: URL, session: SessionStore) {
+        _store = State(initialValue: ManualMaterialPickerStore(baseURL: baseURL, session: session))
     }
 
-    private let columns = [GridItem(.adaptive(minimum: 72), spacing: SLSpacing.x3)]
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: SLSpacing.x3), count: 4)
 
     var body: some View {
         VStack(spacing: 0) {
@@ -38,12 +38,26 @@ struct ManualMaterialPickerView: View {
                     if !store.selection.selectedMaterialIDs.isEmpty {
                         selectionTray
                     }
+                    quickFilterChips
                     categoryChips
                     materialGrid
                 }
                 .padding(.top, SLSpacing.x3)
                 .padding(.bottom, SLSpacing.x16)
             }
+        }
+    }
+
+    private var quickFilterChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: SLSpacing.x2) {
+                ForEach(MaterialQuickFilter.allCases, id: \.self) { quickFilter in
+                    FilterChip(title: quickFilter.title, isSelected: store.filter.quickFilter == quickFilter) {
+                        store.filter.quickFilter = quickFilter
+                    }
+                }
+            }
+            .padding(.horizontal, SLSpacing.x4)
         }
     }
 
@@ -92,7 +106,7 @@ struct ManualMaterialPickerView: View {
         LazyVGrid(columns: columns, spacing: SLSpacing.x3) {
             ForEach(store.filteredMaterials, id: \.id) { material in
                 MaterialTileView(material: material, isSelected: store.selection.isSelected(material.id)) {
-                    store.selection.toggle(material.id)
+                    store.toggleSelection(material.id)
                 }
             }
         }
