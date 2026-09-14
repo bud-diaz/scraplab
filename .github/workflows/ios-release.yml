@@ -92,10 +92,19 @@ jobs:
       # Decoded to a real file rather than passed as key_content — fastlane/spaceship parsing
       # an EC private key from an in-memory string is unreliable when the string comes from a
       # CI secret (recurring "invalid curve name" OpenSSL::PKey::ECError, see Fastfile).
+      #
+      # Apple's .p8 download is PKCS8-wrapped ("BEGIN PRIVATE KEY"), but spaceship's
+      # token.rb calls OpenSSL::PKey::EC.new() directly on it, which only reliably parses the
+      # older SEC1 format ("BEGIN EC PRIVATE KEY") on current OpenSSL — that mismatch is the
+      # actual cause of "invalid curve name", independent of key_content vs key_filepath.
+      # Re-export to SEC1 form so spaceship can parse it.
       - name: Decode App Store Connect API key
         env:
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
-        run: echo "$APP_STORE_CONNECT_API_KEY_CONTENT" | base64 -D > AuthKey.p8
+        run: |
+          echo "$APP_STORE_CONNECT_API_KEY_CONTENT" | base64 -D > AuthKey_pkcs8.p8
+          openssl ec -in AuthKey_pkcs8.p8 -out AuthKey.p8
+          rm -f AuthKey_pkcs8.p8
 
       - name: Build and upload to TestFlight
         env:
