@@ -6,6 +6,7 @@ import SwiftUI
 /// no API" risk note. Zero server changes needed; the route already supports `featured`.
 struct SuggestedForYouView: View {
     let activities: [Activity]
+    let session: SessionStore
     let onSeeAll: () -> Void
     let onSelect: (Activity) -> Void
 
@@ -21,13 +22,20 @@ struct SuggestedForYouView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: SLSpacing.x3) {
                     ForEach(activities, id: \.id) { activity in
-                        Button {
-                            onSelect(activity)
-                        } label: {
-                            ProjectCardView(activity: activity, layout: .compact)
-                                .frame(width: 180)
+                        ZStack(alignment: .topLeading) {
+                            Button {
+                                onSelect(activity)
+                            } label: {
+                                ProjectCardView(activity: activity, layout: .compact)
+                                    .frame(width: 180)
+                            }
+                            .buttonStyle(.plain)
+
+                            if let projectId = activity.projectId, session.isAuthenticated {
+                                ProjectSaveButton(projectId: projectId, session: session)
+                                    .padding(SLSpacing.x1)
+                            }
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }

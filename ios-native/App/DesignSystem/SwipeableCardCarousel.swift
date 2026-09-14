@@ -3,6 +3,15 @@ import SwiftUI
 /// Generic swipeable, view-aligned card carousel with a page-dot indicator, adapted from
 /// `AgeBandCarouselView`'s scroll mechanics (`.scrollTargetLayout()` + `.scrollTargetBehavior(.viewAligned)`
 /// + `.scrollPosition(id:)`). No page-dot component existed anywhere in this codebase before this.
+///
+/// Unlike `AgeBandCarouselView` — which is *designed* to show multiple cards at once with
+/// one scaled up as "active" under the default `.viewAligned` limit behavior (`.automatic`,
+/// which packs as many items per page as fit) — this component's cards are wide enough
+/// relative to the viewport that `.automatic` produced an ambiguous, non-item-aligned
+/// snap point (two cards each half-cut at the screen edges instead of one fully visible).
+/// `.viewAligned(limitBehavior: .always)` forces exactly one item to be the snap target
+/// per page regardless of viewport/item-width ratio, which is what "swipe one card at a
+/// time" actually requires.
 struct SwipeableCardCarousel<Item: Identifiable, Content: View>: View {
     let items: [Item]
     // 320pt (not the initially-considered 280pt) gives `.full`-layout `ProjectCardView`'s
@@ -27,7 +36,7 @@ struct SwipeableCardCarousel<Item: Identifiable, Content: View>: View {
                 }
                 .scrollTargetLayout()
             }
-            .scrollTargetBehavior(.viewAligned)
+            .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
             .scrollPosition(id: $selectedID)
             .animation(.spring(response: 0.3, dampingFraction: 0.85), value: selectedID)
             .onAppear {

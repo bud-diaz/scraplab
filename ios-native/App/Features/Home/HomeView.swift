@@ -28,6 +28,7 @@ struct HomeView: View {
                 if !store.featuredActivities.isEmpty {
                     SuggestedForYouView(
                         activities: store.featuredActivities,
+                        session: session,
                         onSeeAll: { router.selectedTab = .browse },
                         onSelect: { activity in
                             router.selectedTab = .browse

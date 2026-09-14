@@ -92,7 +92,7 @@ struct RootTabView: View {
 
     private var browseTab: some View {
         NavigationStack(path: $router.browsePath) {
-            BrowseListView(store: browseStore)
+            BrowseListView(store: browseStore, session: session)
                 .navigationDestination(for: BrowseRoute.self) { route in
                     switch route {
                     case .explore(let slug):

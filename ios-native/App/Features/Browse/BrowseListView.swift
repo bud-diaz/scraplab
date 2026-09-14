@@ -3,6 +3,7 @@ import SwiftUI
 
 struct BrowseListView: View {
     @Bindable var store: BrowseStore
+    let session: SessionStore
     @State private var isPresentingFilters = false
 
     var body: some View {
@@ -48,11 +49,18 @@ struct BrowseListView: View {
         ScrollView {
             LazyVStack(spacing: SLSpacing.x4) {
                 ForEach(store.activities, id: \.id) { activity in
-                    NavigationLink(value: BrowseRoute.explore(activity.slug)) {
-                        ProjectCardView(activity: activity, layout: .full)
+                    ZStack(alignment: .topLeading) {
+                        NavigationLink(value: BrowseRoute.explore(activity.slug)) {
+                            ProjectCardView(activity: activity, layout: .full)
+                        }
+                        .buttonStyle(.plain)
+                        .task { await store.loadMoreIfNeeded(after: activity) }
+
+                        if let projectId = activity.projectId, session.isAuthenticated {
+                            ProjectSaveButton(projectId: projectId, session: session)
+                                .padding(SLSpacing.x2)
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .task { await store.loadMoreIfNeeded(after: activity) }
                 }
                 if store.phase == .loadingMore {
                     ProgressView().padding()

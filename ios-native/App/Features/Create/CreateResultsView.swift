@@ -9,6 +9,21 @@ private struct MatchCarouselItem: Identifiable {
     var id: String { match.activity.id }
 }
 
+/// The matches carousel caps at 10 cards, with a trailing "See More!" card in place of the
+/// 11th+ match — swiping through dozens of cards one at a time doesn't scale, so the rest
+/// live in `CreateAllResultsGridView`'s full grid instead.
+private enum MatchesCarouselEntry: Identifiable {
+    case match(MatchCarouselItem)
+    case seeMore(remainingCount: Int)
+
+    var id: String {
+        switch self {
+        case .match(let item): item.id
+        case .seeMore: "see-more"
+        }
+    }
+}
+
 /// `AiSuggestion` (Gemini output) has no natural id — the existing grid keyed it by array
 /// index (`\.offset`); this wraps that same index for the carousel's `Identifiable` need.
 private struct SuggestionCarouselItem: Identifiable {
@@ -20,11 +35,13 @@ private struct SuggestionCarouselItem: Identifiable {
 struct CreateResultsView: View {
     let materialIDs: [UUID]
     let childAge: Int
+    let session: SessionStore
     @State private var store: CreateResultsStore
 
     init(materialIDs: [UUID], childAge: Int, baseURL: URL, session: SessionStore) {
         self.materialIDs = materialIDs
         self.childAge = childAge
+        self.session = session
         _store = State(initialValue: CreateResultsStore(baseURL: baseURL, session: session))
     }
 
@@ -74,11 +91,28 @@ struct CreateResultsView: View {
             VStack(alignment: .leading, spacing: SLSpacing.x5) {
                 filterChips
                 if !store.filteredMatches.isEmpty {
-                    SwipeableCardCarousel(items: store.filteredMatches.map(MatchCarouselItem.init)) { item, _ in
-                        NavigationLink(value: CreateRoute.activity(slug: item.match.activity.slug)) {
-                            ProjectCardView(activity: item.match.activity, matchLabel: item.match.matchLabel, layout: .full)
+                    SwipeableCardCarousel(items: matchesCarouselEntries) { entry, _ in
+                        switch entry {
+                        case .match(let item):
+                            ZStack(alignment: .topLeading) {
+                                NavigationLink(value: CreateRoute.activity(slug: item.match.activity.slug)) {
+                                    ProjectCardView(activity: item.match.activity, matchLabel: item.match.matchLabel, layout: .full)
+                                }
+                                .buttonStyle(.plain)
+
+                                if let projectId = item.match.activity.projectId, session.isAuthenticated {
+                                    ProjectSaveButton(projectId: projectId, session: session)
+                                        .padding(SLSpacing.x2)
+                                }
+                            }
+                        case .seeMore(let remainingCount):
+                            NavigationLink {
+                                CreateAllResultsGridView(matches: store.filteredMatches, session: session)
+                            } label: {
+                                seeMoreCard(remainingCount: remainingCount)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                     .padding(.horizontal, SLSpacing.x4)
                 }
@@ -101,6 +135,37 @@ struct CreateResultsView: View {
             }
             .padding(.vertical, SLSpacing.x4)
         }
+    }
+
+    private static let carouselMatchLimit = 10
+
+    private var matchesCarouselEntries: [MatchesCarouselEntry] {
+        let capped = store.filteredMatches.prefix(Self.carouselMatchLimit).map(MatchCarouselItem.init)
+        var entries = capped.map(MatchesCarouselEntry.match)
+        let remaining = store.filteredMatches.count - Self.carouselMatchLimit
+        if remaining > 0 {
+            entries.append(.seeMore(remainingCount: remaining))
+        }
+        return entries
+    }
+
+    private func seeMoreCard(remainingCount: Int) -> some View {
+        VStack(spacing: SLSpacing.x3) {
+            Image(systemName: "square.grid.2x2.fill")
+                .font(.system(size: 40))
+                .foregroundStyle(SLColor.primary)
+            Text("See \(remainingCount) More!")
+                .font(SLFont.headline)
+                .foregroundStyle(SLColor.ink)
+            Text("Browse every build we found")
+                .font(SLFont.callout)
+                .foregroundStyle(SLColor.bodyText)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(SLSpacing.x4)
+        .background(SLColor.surface, in: RoundedRectangle(cornerRadius: SLRadius.largeCard))
+        .slShadow()
     }
 
     private var filterChips: some View {

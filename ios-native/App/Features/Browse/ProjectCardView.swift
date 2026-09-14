@@ -13,7 +13,10 @@ enum CardLayout {
 /// Spec §4.4 card anatomy: illustration on top, title + age row, one-line description
 /// (full layout only), an always-visible Reality Indicators row, and a CTA affordance.
 /// The whole card is wrapped in a `NavigationLink` at each call site (Browse/Home/Create
-/// results), so the CTA below is presentational, not a nested interactive control.
+/// results), so the CTA below — and any save/favorite button a call site layers on top —
+/// is presentational or a ZStack sibling, never nested inside this view's own body, to
+/// avoid the exact nested-interactive-control bug already fixed once in this codebase
+/// (`SavedProjectCardView`'s unsave button vs. its wrapping `NavigationLink`).
 struct ProjectCardView: View {
     let activity: Activity
     var matchLabel: String?
