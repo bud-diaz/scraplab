@@ -14,14 +14,17 @@ platform :ios do
   end
 
   desc "Build, sign, and upload a TestFlight build. Requires APP_STORE_CONNECT_API_KEY_ID, " \
-       "APP_STORE_CONNECT_API_ISSUER_ID, and APP_STORE_CONNECT_API_KEY_CONTENT (base64-encoded " \
-       ".p8) in the environment — see docs/ios-release-checklist.md."
+       "APP_STORE_CONNECT_API_ISSUER_ID, and APP_STORE_CONNECT_API_KEY_FILEPATH (path to the " \
+       "decoded .p8) in the environment — see docs/ios-release-checklist.md."
   lane :beta do
+    # key_filepath, not key_content+is_key_content_base64 — the latter parses the EC key from
+    # an in-memory string and is unreliable when that string comes from a CI secret (recurring
+    # "invalid curve name" OpenSSL::PKey::ECError across fastlane/fastlane for years, e.g. #17340).
+    # The workflow decodes the base64 secret to a real file before this lane runs.
     api_key = app_store_connect_api_key(
       key_id: ENV.fetch("APP_STORE_CONNECT_API_KEY_ID"),
       issuer_id: ENV.fetch("APP_STORE_CONNECT_API_ISSUER_ID"),
-      key_content: ENV.fetch("APP_STORE_CONNECT_API_KEY_CONTENT"),
-      is_key_content_base64: true
+      key_filepath: ENV.fetch("APP_STORE_CONNECT_API_KEY_FILEPATH")
     )
 
     sh("xcodegen generate --spec project.yml")

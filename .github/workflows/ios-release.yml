@@ -89,12 +89,24 @@ jobs:
           bundler-cache: true
           working-directory: ios-native
 
+      # Decoded to a real file rather than passed as key_content — fastlane/spaceship parsing
+      # an EC private key from an in-memory string is unreliable when the string comes from a
+      # CI secret (recurring "invalid curve name" OpenSSL::PKey::ECError, see Fastfile).
+      - name: Decode App Store Connect API key
+        env:
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+        run: echo "$APP_STORE_CONNECT_API_KEY_CONTENT" | base64 -D > AuthKey.p8
+
       - name: Build and upload to TestFlight
         env:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
-          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+          APP_STORE_CONNECT_API_KEY_FILEPATH: ${{ github.workspace }}/ios-native/AuthKey.p8
         run: bundle exec fastlane ios beta
+
+      - name: Clean up decoded API key
+        if: always()
+        run: rm -f AuthKey.p8
 
       - name: Upload build artifacts
         if: always()
