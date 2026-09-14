@@ -1,0 +1,108 @@
+name: Native iOS Release
+
+# Manual only — a TestFlight upload is a real, externally-visible action (testers get a
+# build notification), not something that should fire on every push. Add a `push: tags:`
+# trigger later if you want tag-based releases once this has been run successfully by hand.
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why you're shipping this build (shows in the Actions run log only)"
+        required: false
+        default: "Manual TestFlight upload"
+
+jobs:
+  release:
+    runs-on: macos-15
+    env:
+      XCODEGEN_VERSION: 2.46.0
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+    defaults:
+      run:
+        working-directory: ios-native
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 26.3
+        run: xcodebuild -version
+
+      - name: Reject web billing endpoints in native code
+        working-directory: ${{ github.workspace }}
+        run: |
+          if grep -R --line-number --extended-regexp 'api/checkout|billing/portal' ios-native; then
+            echo "Stripe checkout and billing portal endpoints must not be reachable from the native app."
+            exit 1
+          fi
+
+      - name: Install pinned XcodeGen
+        run: |
+          curl --fail --silent --show-error --location \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip" \
+            --output "${RUNNER_TEMP}/xcodegen.zip"
+          unzip -q "${RUNNER_TEMP}/xcodegen.zip" -d "${RUNNER_TEMP}"
+          echo "${RUNNER_TEMP}/xcodegen/bin" >> "${GITHUB_PATH}"
+          "${RUNNER_TEMP}/xcodegen/bin/xcodegen" --version
+
+      - name: Cache Swift Package Manager artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios-native/Packages/ScrapLabCore/.build
+            ~/Library/Caches/org.swift.swiftpm
+          key: ${{ runner.os }}-xcode-26.3-spm-${{ hashFiles('ios-native/**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-xcode-26.3-spm-
+
+      - name: Resolve Swift package dependencies
+        working-directory: ios-native/Packages/ScrapLabCore
+        run: swift package resolve
+
+      - name: Run Swift package tests
+        working-directory: ios-native/Packages/ScrapLabCore
+        run: swift test
+
+      # Without this, the shipped build would hit the exact "Supabase is not configured in
+      # this build yet" wall this session found and fixed for the Mac's local dev build —
+      # these are public, client-embeddable keys (anon key + RevenueCat public iOS key),
+      # not secrets in the security sense, but still not committed to the repo.
+      - name: Write runtime config from secrets
+        env:
+          SUPABASE_URL: ${{ secrets.SCRAPLAB_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SCRAPLAB_SUPABASE_ANON_KEY }}
+          REVENUECAT_IOS_API_KEY: ${{ secrets.SCRAPLAB_REVENUECAT_IOS_API_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::SCRAPLAB_SUPABASE_URL and SCRAPLAB_SUPABASE_ANON_KEY repo secrets are required to ship a working build."
+            exit 1
+          fi
+          escaped_url=$(echo "$SUPABASE_URL" | sed 's#//#/$()/#')
+          {
+            echo "SCRAPLAB_SUPABASE_URL = $escaped_url"
+            echo "SCRAPLAB_SUPABASE_ANON_KEY = $SUPABASE_ANON_KEY"
+            echo "SCRAPLAB_REVENUECAT_IOS_API_KEY = $REVENUECAT_IOS_API_KEY"
+          } > Config/Local.xcconfig
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: ios-native
+
+      - name: Build and upload to TestFlight
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+        run: bundle exec fastlane ios beta
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scraplab-ios-release
+          path: |
+            ios-native/*.ipa
+            ios-native/buildlog
+          if-no-files-found: ignore
+          retention-days: 14

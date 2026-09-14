@@ -12,4 +12,42 @@ platform :ios do
       skip_archive: true
     )
   end
+
+  desc "Build, sign, and upload a TestFlight build. Requires APP_STORE_CONNECT_API_KEY_ID, " \
+       "APP_STORE_CONNECT_API_ISSUER_ID, and APP_STORE_CONNECT_API_KEY_CONTENT (base64-encoded " \
+       ".p8) in the environment — see docs/ios-release-checklist.md."
+  lane :beta do
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("APP_STORE_CONNECT_API_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_API_ISSUER_ID"),
+      key_content: ENV.fetch("APP_STORE_CONNECT_API_KEY_CONTENT"),
+      is_key_content_base64: true
+    )
+
+    sh("xcodegen generate --spec project.yml")
+
+    # A unique, monotonically increasing build number per CI run — avoids depending on
+    # querying App Store Connect for the previous build number, which would fail on the
+    # very first upload before any TestFlight build exists yet.
+    increment_build_number(
+      xcodeproj: "ScrapLab.xcodeproj",
+      build_number: ENV.fetch("GITHUB_RUN_NUMBER", Time.now.to_i.to_s)
+    )
+
+    build_app(
+      project: "ScrapLab.xcodeproj",
+      scheme: "ScrapLab",
+      clean: true,
+      export_method: "app-store",
+      # Automatic signing (already the project's CODE_SIGN_STYLE) lets Xcode fetch/create
+      # the needed distribution certificate and provisioning profile using the API key —
+      # no separately-exported .p12/.mobileprovision secrets to manage or rotate.
+      xcargs: "-allowProvisioningUpdates"
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true
+    )
+  end
 end

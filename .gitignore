@@ -166,3 +166,6 @@ vite.config.ts.timestamp-*
 /ios-native/fastlane/Preview.html
 /ios-native/fastlane/screenshots/
 /ios-native/fastlane/test_output/
+/ios-native/*.ipa
+/ios-native/buildlog/
+/ios-native/vendor/
