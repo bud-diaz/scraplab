@@ -1,3 +1,4 @@
+import ScrapLabModels
 import SwiftUI
 
 struct RootTabView: View {
@@ -52,6 +53,8 @@ struct RootTabView: View {
                     switch route {
                     case .manual:
                         ManualMaterialPickerView(baseURL: AppEnvironment.apiBaseURL, session: session)
+                    case .manualStaples:
+                        ManualMaterialPickerView(baseURL: AppEnvironment.apiBaseURL, session: session, initialQuickFilter: .householdStaples)
                     case .scan:
                         ScanView(baseURL: AppEnvironment.apiBaseURL, session: session, router: router)
                     case .results(let materialIDs, let childAge):

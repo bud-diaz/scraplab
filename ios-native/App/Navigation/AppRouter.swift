@@ -5,6 +5,10 @@ enum AppTab: Hashable { case home, create, buildLog, browse, profile }
 enum HomeRoute: Hashable { case foundation }
 enum CreateRoute: Hashable {
     case manual, scan
+    /// Pushed from the Create method list's "Use Household Staples" row — a separate case
+    /// from `.manual` so that entry point starts the picker on the Household Staples
+    /// quick-filter instead of "All", without changing `.manual`'s six existing call sites.
+    case manualStaples
     case results(materialIDs: [UUID], childAge: Int)
     /// Pushed from a `CreateResultsView` activity card. A separate case from
     /// `BrowseRoute.explore` because `createPath`/`browsePath` are independently typed

@@ -8,6 +8,10 @@ enum CreateResultsPhase: Equatable {
     case loaded
     case limitReached(message: String)
     case planGate(message: String)
+    /// Genuine connectivity failure (`APIError.offline`) — distinct from `.failed` so the
+    /// UI only shows a network icon when the device is actually offline, not for every
+    /// unclassified server/validation error.
+    case offline(message: String)
     case failed(message: String)
 }
 
@@ -47,6 +51,8 @@ final class CreateResultsStore {
                 phase = .limitReached(message: message ?? "You've used today's free recommendations. Upgrade to ScrapLab Plus for unlimited builds, or come back tomorrow.")
             } else if case APIError.planGate(_, let message, _) = error {
                 phase = .planGate(message: message ?? "This feature requires ScrapLab Plus.")
+            } else if case APIError.offline = error {
+                phase = .offline(message: (error as? LocalizedError)?.errorDescription ?? "ScrapLab appears to be offline. Check your connection and try again.")
             } else {
                 phase = .failed(message: (error as? LocalizedError)?.errorDescription ?? "Something went wrong finding builds.")
             }

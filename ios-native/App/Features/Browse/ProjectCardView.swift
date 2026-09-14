@@ -33,7 +33,8 @@ struct ProjectCardView: View {
                 RealityIndicatorRow(
                     timeMinutes: activity.timeMinutes,
                     cleanupMinutes: activity.estimatedCleanupMinutes,
-                    supervisionLevel: activity.normalizedSupervisionLevel
+                    supervisionLevel: activity.normalizedSupervisionLevel,
+                    style: layout == .full ? .full : .compact
                 )
                 if layout == .full {
                     HStack {

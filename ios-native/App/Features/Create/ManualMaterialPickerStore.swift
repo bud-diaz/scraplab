@@ -32,10 +32,11 @@ final class ManualMaterialPickerStore {
     private let session: SessionStore
     private let defaults: UserDefaults
 
-    init(baseURL: URL, session: SessionStore, defaults: UserDefaults = .standard) {
+    init(baseURL: URL, session: SessionStore, initialQuickFilter: MaterialQuickFilter = .all, defaults: UserDefaults = .standard) {
         self.baseURL = baseURL
         self.session = session
         self.defaults = defaults
+        filter.quickFilter = initialQuickFilter
     }
 
     var categories: [String] { MaterialCatalogFilter.categories(in: materials) }

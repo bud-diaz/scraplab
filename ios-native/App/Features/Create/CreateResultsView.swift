@@ -37,8 +37,12 @@ struct CreateResultsView: View {
                 UpgradeCard(title: "ScrapLab Plus", message: message) {}
                     .padding(SLSpacing.x4)
             }
-        case .failed(let message):
+        case .offline(let message):
             SLEmptyState(title: "Couldn't find builds", message: message, systemImage: "wifi.slash", actionTitle: "Try again") {
+                Task { await store.load(materialIDs: materialIDs, childAge: childAge) }
+            }
+        case .failed(let message):
+            SLEmptyState(title: "Couldn't find builds", message: message, systemImage: "exclamationmark.triangle", actionTitle: "Try again") {
                 Task { await store.load(materialIDs: materialIDs, childAge: childAge) }
             }
         case .loaded:

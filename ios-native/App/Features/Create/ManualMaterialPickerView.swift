@@ -4,8 +4,8 @@ import SwiftUI
 struct ManualMaterialPickerView: View {
     @State private var store: ManualMaterialPickerStore
 
-    init(baseURL: URL, session: SessionStore) {
-        _store = State(initialValue: ManualMaterialPickerStore(baseURL: baseURL, session: session))
+    init(baseURL: URL, session: SessionStore, initialQuickFilter: MaterialQuickFilter = .all) {
+        _store = State(initialValue: ManualMaterialPickerStore(baseURL: baseURL, session: session, initialQuickFilter: initialQuickFilter))
     }
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: SLSpacing.x3), count: 4)
@@ -132,7 +132,9 @@ struct ManualMaterialPickerView: View {
                 .disabled(!store.selection.canSubmit)
             }
         }
-        .padding(SLSpacing.x4)
+        .padding(.horizontal, SLSpacing.x4)
+        .padding(.top, SLSpacing.x4)
+        .padding(.bottom, SLSpacing.x4 + FloatingTabBar.reservedHeight)
         .background(.ultraThinMaterial)
     }
 

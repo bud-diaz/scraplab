@@ -1,7 +1,9 @@
 import ScrapLabModels
 import SwiftUI
 
-private extension SupervisionLevel {
+/// Internal (not `private`) so `RealityIndicatorRow` can reuse this Leaf/Amber/Coral
+/// mapping for its compact icon-only style instead of duplicating it.
+extension SupervisionLevel {
     var displayTitle: String {
         switch self {
         case .independent: "Independent"

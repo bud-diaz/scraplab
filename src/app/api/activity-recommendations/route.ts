@@ -49,7 +49,8 @@ export async function POST(request: NextRequest) {
 
   const parsed = bodySchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+    const message = parsed.error.issues.map(issue => issue.message).join(', ')
+    return NextResponse.json({ error: message }, { status: 400 })
   }
 
   const { materialIds, childAge, requestId } = parsed.data
@@ -63,7 +64,13 @@ export async function POST(request: NextRequest) {
   const identity = user ? getUserIdentity(user.id) : getGuestIdentity(request)
 
   if (plan !== 'plus') {
-    const reservation = await reserveRecommendationUsage(db, identity, PLAN_LIMITS.free.dailyRecommendations, requestId)
+    let reservation
+    try {
+      reservation = await reserveRecommendationUsage(db, identity, PLAN_LIMITS.free.dailyRecommendations, requestId)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Could not check recommendation usage'
+      return NextResponse.json({ error: message }, { status: 500 })
+    }
     if (!reservation.allowed) {
       return NextResponse.json(
         {

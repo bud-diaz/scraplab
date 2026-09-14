@@ -10,14 +10,15 @@ private struct CreateMethodOption: Identifiable {
     let route: CreateRoute
 }
 
-/// Mirrors `src/components/cards/CreateMethods.tsx`. Two of the four web entries route to
-/// the same manual picker there too ("Household Staples" and "Quick Build" are marketing
-/// framing over the identical flow, not distinct screens) — ported as-is rather than
-/// inventing native-only behavior the web doesn't have.
+/// Loosely mirrors `src/components/cards/CreateMethods.tsx`, which routes both "Household
+/// Staples" and "Quick Build" to the identical manual-picker flow behind a misleading
+/// "Coming Soon" badge. Native diverges here: "Use Household Staples" pushes `.manualStaples`
+/// so it actually starts the picker on the real Household Staples quick-filter, delivering
+/// on its own description instead of being a mislabeled duplicate of "Quick Build".
 private let createMethodOptions: [CreateMethodOption] = [
     CreateMethodOption(icon: "hand.point.up.left.fill", title: "Choose Materials Manually", description: "Tap to select what you have on hand", badge: "Most Popular", isPremium: false, route: .manual),
     CreateMethodOption(icon: "camera.fill", title: "Scan a Photo", description: "Take a photo and we'll detect your materials", badge: nil, isPremium: true, route: .scan),
-    CreateMethodOption(icon: "shippingbox.fill", title: "Use Household Staples", description: "Build from your saved usual materials", badge: "Coming Soon", isPremium: false, route: .manual),
+    CreateMethodOption(icon: "shippingbox.fill", title: "Use Household Staples", description: "Build from your saved usual materials", badge: nil, isPremium: false, route: .manualStaples),
     CreateMethodOption(icon: "bolt.fill", title: "Quick Build", description: "3 materials or fewer — fast project ideas", badge: nil, isPremium: false, route: .manual),
 ]
 

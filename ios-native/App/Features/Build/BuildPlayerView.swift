@@ -128,7 +128,9 @@ struct BuildPlayerView: View {
             .font(SLFont.caption)
             .foregroundStyle(SLColor.mutedText)
         }
-        .padding(SLSpacing.x4)
+        .padding(.horizontal, SLSpacing.x4)
+        .padding(.top, SLSpacing.x4)
+        .padding(.bottom, SLSpacing.x4 + FloatingTabBar.reservedHeight)
         .background(.ultraThinMaterial)
     }
 }

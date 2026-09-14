@@ -6,6 +6,14 @@ import SwiftUI
 struct FloatingTabBar: View {
     @Binding var selection: AppTab
 
+    private static let iconDiameter: CGFloat = 44
+
+    /// Total footprint from the screen's bottom edge, for screens with their own sticky
+    /// bottom bar (`ManualMaterialPickerView`, `BuildPlayerView`) to pad past — a defensive
+    /// fix that doesn't depend on `.safeAreaInset` propagation through a pushed
+    /// `NavigationStack` view actually reaching that deep (confirmed unreliable on-device).
+    static let reservedHeight: CGFloat = iconDiameter + SLSpacing.x2 * 2 + SLSpacing.x2
+
     private struct Item {
         let tab: AppTab
         let systemImage: String
@@ -14,8 +22,8 @@ struct FloatingTabBar: View {
 
     private let items: [Item] = [
         Item(tab: .home, systemImage: "house.fill", label: "Home"),
-        Item(tab: .create, systemImage: "plus", label: "Create"),
         Item(tab: .buildLog, systemImage: "book.closed.fill", label: "Build Log"),
+        Item(tab: .create, systemImage: "plus", label: "Create"),
         Item(tab: .browse, systemImage: "safari.fill", label: "Browse"),
         Item(tab: .profile, systemImage: "person.fill", label: "Profile"),
     ]
@@ -30,7 +38,7 @@ struct FloatingTabBar: View {
                     Image(systemName: item.systemImage)
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(isActive ? Color.white : SLColor.mutedText)
-                        .frame(width: 44, height: 44)
+                        .frame(width: Self.iconDiameter, height: Self.iconDiameter)
                         .background {
                             if isActive {
                                 Circle().fill(SLColor.primary)
