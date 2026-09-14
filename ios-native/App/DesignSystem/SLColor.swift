@@ -51,6 +51,14 @@ enum SLColor {
     static let coralText = Color(hex: 0xB23A2A)
     static let sunshine = Color(hex: 0xFFC93C)
 
+    /// Vibrant accents for the whole-app "kiddie" pass — playful pink, bright teal, purple.
+    static let bubblegum = Color(hex: 0xFF5FA2)
+    static let bubblegumText = Color(hex: 0xC22A6E)
+    static let turquoise = Color(hex: 0x2FD1C5)
+    static let turquoiseText = Color(hex: 0x0E8A7F)
+    static let grape = Color(hex: 0x9B5DE5)
+    static let grapeText = Color(hex: 0x6A2FB0)
+
     static let primary = builder500
     static let primaryPressed = builder600
     static let hero = scraplabBlue

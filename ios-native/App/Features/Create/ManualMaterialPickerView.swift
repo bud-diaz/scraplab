@@ -126,7 +126,7 @@ struct ManualMaterialPickerView: View {
                 Text(selectionSummary).font(SLFont.caption).foregroundStyle(SLColor.bodyText)
                 Spacer()
                 NavigationLink(value: CreateRoute.results(materialIDs: store.selection.selectedMaterialIDs, childAge: store.childAge)) {
-                    Text("Find Builds")
+                    Text("Find My Builds!")
                 }
                 .buttonStyle(.scrapLab())
                 .disabled(!store.selection.canSubmit)

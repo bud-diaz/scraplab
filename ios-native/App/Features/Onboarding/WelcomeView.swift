@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Spec §4.1: full-bleed ScrapLab Blue hero, centered mascot, a speech-bubble value-prop
-/// panel, and a circular arrow "Next" button bottom-center advancing to the age-band carousel.
+/// panel, and a bold "Let's Start!" pill button bottom-center advancing to the age-band carousel.
 struct WelcomeView: View {
     let onContinue: () -> Void
 
@@ -27,13 +27,14 @@ struct WelcomeView: View {
                 Spacer()
 
                 Button(action: onContinue) {
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 20, weight: .bold))
+                    Label("Let's Start!", systemImage: "arrow.right")
+                        .font(SLFont.headline.weight(.heavy))
                         .foregroundStyle(SLColor.hero)
-                        .frame(width: 56, height: 56)
-                        .background(Color.white, in: Circle())
+                        .padding(.horizontal, SLSpacing.x8)
+                        .padding(.vertical, SLSpacing.x4)
+                        .background(Color.white, in: Capsule())
                 }
-                .accessibilityLabel("Continue")
+                .accessibilityLabel("Let's Start")
                 .padding(.bottom, SLSpacing.x10)
             }
             .padding(.horizontal, SLSpacing.x6)

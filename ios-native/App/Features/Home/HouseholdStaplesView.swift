@@ -25,7 +25,7 @@ struct HouseholdStaplesView: View {
                         }
                     }
                 }
-                Button("Find builds with these →") {
+                Button("Find Builds With These!") {
                     onFindBuilds(staples.map(\.materialId))
                 }
                 .buttonStyle(.scrapLab(.secondary, size: .compact))

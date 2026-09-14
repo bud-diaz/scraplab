@@ -48,7 +48,7 @@ struct ProjectDetailView: View {
                         if !project.safetyNotes.isEmpty {
                             safetySection(for: project)
                         }
-                        Button("Start Build") { onStartBuild(project.id) }
+                        Button("Let's Build This!") { onStartBuild(project.id) }
                             .buttonStyle(.scrapLab())
                     }
                 }

@@ -107,7 +107,7 @@ struct BuildPlayerView: View {
                     .disabled(store.stepState.isFirstStep)
 
                 if store.stepState.isLastStep {
-                    Button("Complete Build") {
+                    Button("I Did It!") {
                         Task {
                             if await store.complete() {
                                 router.buildLogPath.append(.complete(projectId: project.id))
@@ -120,7 +120,7 @@ struct BuildPlayerView: View {
                         .buttonStyle(.scrapLab())
                 }
             }
-            Button("Pause Build") {
+            Button("Take a Break") {
                 store.pause()
                 router.buildLogPath = [.project(project.id)]
             }

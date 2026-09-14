@@ -14,7 +14,7 @@ struct SuggestedForYouView: View {
             HStack {
                 Text("Suggested For You").font(SLFont.headline).foregroundStyle(SLColor.ink)
                 Spacer()
-                Button("See all", action: onSeeAll)
+                Button("See All!", action: onSeeAll)
                     .font(SLFont.caption.weight(.semibold))
                     .foregroundStyle(SLColor.primaryPressed)
             }

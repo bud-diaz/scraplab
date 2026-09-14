@@ -20,13 +20,13 @@ enum SLFont {
         return .custom(bodyFamily, size: size, relativeTo: style)
     }
 
-    static let largeTitle = heading(36, relativeTo: .largeTitle).weight(.bold)
-    static let title = heading(28, relativeTo: .title).weight(.bold)
-    static let title2 = heading(22, relativeTo: .title2).weight(.semibold)
-    static let headline = heading(17, relativeTo: .headline).weight(.semibold)
-    static let body = body(16)
-    static let callout = body(15, relativeTo: .callout)
-    static let caption = body(12, relativeTo: .caption)
+    static let largeTitle = heading(40, relativeTo: .largeTitle).weight(.bold)
+    static let title = heading(32, relativeTo: .title).weight(.bold)
+    static let title2 = heading(25, relativeTo: .title2).weight(.semibold)
+    static let headline = heading(19, relativeTo: .headline).weight(.semibold)
+    static let body = body(18)
+    static let callout = body(17, relativeTo: .callout)
+    static let caption = body(13, relativeTo: .caption)
 
     /// Uses Inter's OpenType tabular-number feature when available and falls back safely.
     static func tabular(_ size: CGFloat, weight: UIFont.Weight = .regular) -> Font {

@@ -45,7 +45,7 @@ struct RealityIndicatorRow: View {
 
     private func iconBadge(systemImage: String, tint: Color, accessibilityLabel: String) -> some View {
         Image(systemName: systemImage)
-            .font(.system(size: 12, weight: .semibold))
+            .font(.system(size: 13, weight: .semibold))
             .foregroundStyle(tint)
             .frame(width: 28, height: 28)
             .background(SLColor.softFill(tint), in: Circle())

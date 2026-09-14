@@ -12,7 +12,7 @@ enum SLButtonSize {
     }
 
     var font: Font {
-        switch self { case .compact: SLFont.callout.weight(.semibold); case .regular, .large: SLFont.headline }
+        switch self { case .compact: SLFont.callout.weight(.bold); case .regular, .large: SLFont.headline.weight(.heavy) }
     }
 }
 

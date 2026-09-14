@@ -2,6 +2,21 @@ import Foundation
 import ScrapLabModels
 import SwiftUI
 
+/// `ActivityMatch` is keyed today via `\.activity.id` (a `String`), not `Identifiable` —
+/// wraps it so it satisfies `SwipeableCardCarousel`'s `Item: Identifiable` constraint.
+private struct MatchCarouselItem: Identifiable {
+    let match: ActivityMatch
+    var id: String { match.activity.id }
+}
+
+/// `AiSuggestion` (Gemini output) has no natural id — the existing grid keyed it by array
+/// index (`\.offset`); this wraps that same index for the carousel's `Identifiable` need.
+private struct SuggestionCarouselItem: Identifiable {
+    let suggestion: AiSuggestion
+    let index: Int
+    var id: Int { index }
+}
+
 struct CreateResultsView: View {
     let materialIDs: [UUID]
     let childAge: Int
@@ -59,13 +74,11 @@ struct CreateResultsView: View {
             VStack(alignment: .leading, spacing: SLSpacing.x5) {
                 filterChips
                 if !store.filteredMatches.isEmpty {
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: SLSpacing.x3) {
-                        ForEach(store.filteredMatches, id: \.activity.id) { match in
-                            NavigationLink(value: CreateRoute.activity(slug: match.activity.slug)) {
-                                ProjectCardView(activity: match.activity, matchLabel: match.matchLabel, layout: .compact)
-                            }
-                            .buttonStyle(.plain)
+                    SwipeableCardCarousel(items: store.filteredMatches.map(MatchCarouselItem.init)) { item, _ in
+                        NavigationLink(value: CreateRoute.activity(slug: item.match.activity.slug)) {
+                            ProjectCardView(activity: item.match.activity, matchLabel: item.match.matchLabel, layout: .full)
                         }
+                        .buttonStyle(.plain)
                     }
                     .padding(.horizontal, SLSpacing.x4)
                 }
@@ -77,10 +90,10 @@ struct CreateResultsView: View {
                             Text("via Gemini").font(SLFont.caption).foregroundStyle(SLColor.mutedText)
                         }
                         .padding(.horizontal, SLSpacing.x4)
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: SLSpacing.x3) {
-                            ForEach(Array(store.aiSuggestions.enumerated()), id: \.offset) { index, suggestion in
-                                AiSuggestionCardView(suggestion: suggestion, index: index)
-                            }
+                        SwipeableCardCarousel(
+                            items: store.aiSuggestions.enumerated().map { SuggestionCarouselItem(suggestion: $1, index: $0) }
+                        ) { item, _ in
+                            AiSuggestionCardView(suggestion: item.suggestion, index: item.index)
                         }
                         .padding(.horizontal, SLSpacing.x4)
                     }

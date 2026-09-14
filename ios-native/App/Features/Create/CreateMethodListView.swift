@@ -16,10 +16,10 @@ private struct CreateMethodOption: Identifiable {
 /// so it actually starts the picker on the real Household Staples quick-filter, delivering
 /// on its own description instead of being a mislabeled duplicate of "Quick Build".
 private let createMethodOptions: [CreateMethodOption] = [
-    CreateMethodOption(icon: "hand.point.up.left.fill", title: "Choose Materials Manually", description: "Tap to select what you have on hand", badge: "Most Popular", isPremium: false, route: .manual),
-    CreateMethodOption(icon: "camera.fill", title: "Scan a Photo", description: "Take a photo and we'll detect your materials", badge: nil, isPremium: true, route: .scan),
-    CreateMethodOption(icon: "shippingbox.fill", title: "Use Household Staples", description: "Build from your saved usual materials", badge: nil, isPremium: false, route: .manualStaples),
-    CreateMethodOption(icon: "bolt.fill", title: "Quick Build", description: "3 materials or fewer — fast project ideas", badge: nil, isPremium: false, route: .manual),
+    CreateMethodOption(icon: "hand.point.up.left.fill", title: "Pick My Materials!", description: "Tap to select what you have on hand", badge: "Most Popular", isPremium: false, route: .manual),
+    CreateMethodOption(icon: "camera.fill", title: "Snap a Photo!", description: "Take a photo and we'll detect your materials", badge: nil, isPremium: true, route: .scan),
+    CreateMethodOption(icon: "shippingbox.fill", title: "Use What I Have!", description: "Build from your saved usual materials", badge: nil, isPremium: false, route: .manualStaples),
+    CreateMethodOption(icon: "bolt.fill", title: "Surprise Me!", description: "3 materials or fewer — fast project ideas", badge: nil, isPremium: false, route: .manual),
 ]
 
 struct CreateMethodListView: View {

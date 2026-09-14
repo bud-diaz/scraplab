@@ -88,14 +88,14 @@ struct BuildCompleteView: View {
                     saveButton
                 }
             } else {
-                Button("Go to Library") {
+                Button("See My Creations!") {
                     router.selectedTab = .buildLog
                     router.buildLogPath = []
                 }
                 .buttonStyle(.scrapLab())
             }
 
-            Button("Build Something Else") {
+            Button("Build Something New!") {
                 router.selectedTab = .create
                 router.createPath = [.manual]
             }
@@ -105,7 +105,7 @@ struct BuildCompleteView: View {
     }
 
     private var saveButton: some View {
-        Button("Save to Library") {
+        Button("Save My Build!") {
             Task { await store.save(projectID: projectID) }
         }
         .buttonStyle(.scrapLab())

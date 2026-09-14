@@ -26,7 +26,7 @@ struct AgeBandCarouselView: View {
                 .scrollPosition(id: $selectedID)
                 .frame(height: 220)
 
-                Button("Get Started") { onGetStarted(selectedID) }
+                Button("Let's Go!") { onGetStarted(selectedID) }
                     .buttonStyle(.scrapLab(.hero))
                     .padding(.horizontal, SLSpacing.x6)
 

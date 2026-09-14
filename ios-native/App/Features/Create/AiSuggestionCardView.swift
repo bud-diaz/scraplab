@@ -8,6 +8,7 @@ struct AiSuggestionCardView: View {
     @State private var isExpanded = false
 
     private static let emojis = ["💡", "🎨", "🔨", "✂️", "🌟"]
+    private static let tileColors = [SLColor.hero, SLColor.bubblegum, SLColor.primary, SLColor.turquoise, SLColor.grape]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -16,7 +17,7 @@ struct AiSuggestionCardView: View {
                     .font(.system(size: 36))
                     .frame(maxWidth: .infinity)
                     .frame(height: 96)
-                    .background(SLColor.cream100)
+                    .background(Self.tileColors[index % Self.tileColors.count].opacity(0.22))
                 MetadataChip(label: "AI Idea", systemImage: "sparkles")
                     .padding(SLSpacing.x2)
             }
@@ -30,7 +31,7 @@ struct AiSuggestionCardView: View {
                 Button {
                     withAnimation { isExpanded.toggle() }
                 } label: {
-                    Label(isExpanded ? "Hide steps" : "Show steps", systemImage: isExpanded ? "chevron.up" : "chevron.down")
+                    Label(isExpanded ? "Hide Steps" : "Show Me How!", systemImage: isExpanded ? "chevron.up" : "chevron.down")
                         .font(SLFont.caption.weight(.semibold))
                         .foregroundStyle(SLColor.primaryPressed)
                 }

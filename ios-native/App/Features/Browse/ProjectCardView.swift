@@ -56,7 +56,7 @@ struct ProjectCardView: View {
                 .font(.system(size: layout == .full ? 40 : 28))
                 .frame(maxWidth: .infinity)
                 .frame(height: layout == .full ? 120 : 80)
-                .background(SLColor.cream100)
+                .background(ActivityCategoryColor.fill(for: activity.category).opacity(0.22))
 
             if let matchLabel {
                 MetadataChip(label: matchLabel, systemImage: "checkmark.seal")
@@ -87,7 +87,7 @@ struct ProjectCardView: View {
     }
 
     private var startCTA: some View {
-        Label("Start", systemImage: "arrow.right")
+        Label("Go!", systemImage: "arrow.right")
             .font(SLFont.callout.weight(.semibold))
             .foregroundStyle(.white)
             .padding(.horizontal, SLSpacing.x4)

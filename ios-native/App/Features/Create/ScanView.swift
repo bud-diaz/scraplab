@@ -131,11 +131,11 @@ struct ScanView: View {
     private var actionButtons: some View {
         if case .detected(let materials) = store.phase {
             HStack(spacing: SLSpacing.x3) {
-                Button("Try Another") { store.reset() }
+                Button("Try Another Photo!") { store.reset() }
                     .buttonStyle(.scrapLab(.secondary))
                 if !materials.isEmpty {
                     NavigationLink(value: CreateRoute.results(materialIDs: materials.map(\.materialId), childAge: CreateAge.scanDefault)) {
-                        Text("Find Builds")
+                        Text("Find My Builds!")
                     }
                     .buttonStyle(.scrapLab())
                 }
@@ -146,7 +146,7 @@ struct ScanView: View {
                     Text("Upload Photo")
                 }
                 .buttonStyle(.scrapLab(.secondary))
-                Button("Use Camera") { isShowingCamera = true }
+                Button("Snap a Photo!") { isShowingCamera = true }
                     .buttonStyle(.scrapLab(.secondary))
             }
         }
