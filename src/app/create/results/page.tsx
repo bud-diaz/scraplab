@@ -16,6 +16,21 @@ type Filter = typeof FILTERS[number];
 
 const AI_EMOJIS = ["💡", "🎨", "🔨", "✂️", "🌟"];
 
+/**
+ * Short, deterministic hash for the retry-safe `requestId` sent to the backend
+ * (`z.string().max(100)` in `/api/activity-recommendations`). The raw
+ * `materialIds.join(",")` key can easily exceed 100 characters with 3+ selected
+ * materials (each a 36-char UUID) plus a user id suffix, which previously made
+ * Find Builds fail with a validation error for any non-trivial selection.
+ */
+function shortHash(input: string): string {
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    hash = (Math.imul(31, hash) + input.charCodeAt(i)) | 0;
+  }
+  return (hash >>> 0).toString(16);
+}
+
 function AiSuggestionCard({ suggestion, index }: { suggestion: AiSuggestion; index: number }) {
   const [expanded, setExpanded] = useState(false);
   return (
@@ -87,7 +102,7 @@ function ResultsContent() {
         body: JSON.stringify({
           materialIds: selectedIds,
           childAge,
-          requestId: `${key}:${session?.user.id ?? "guest"}`,
+          requestId: shortHash(`${key}:${session?.user.id ?? "guest"}`),
         }),
       });
       if (res.status === 429) {

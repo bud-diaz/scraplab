@@ -114,11 +114,21 @@ public struct MaterialSelectionState: Equatable, Sendable {
         )
     }
 
-    /// Mirrors the web results page's retry-safe idempotency key (`${ids.join(",")}:age${age}`),
-    /// so a retried request doesn't double-count against the free daily recommendation limit.
+    /// A retry-safe idempotency key, so a retried request doesn't double-count against the
+    /// free daily recommendation limit. Backend caps `requestId` at 100 characters
+    /// (`z.string().max(100)`); the naive `ids.joined(",")` approach this used to mirror
+    /// from the web easily exceeds that with 3+ selected materials (each a 36-char UUID),
+    /// which made "Find Builds" fail validation for any non-trivial selection. `Hasher` is
+    /// seeded once per process and stable for its lifetime, which is exactly the guarantee
+    /// needed here (the same selection retried within one app session hashes identically);
+    /// see `Hasher`'s documentation for why it must not be persisted across process launches.
     public static func dedupeKey(materialIDs: [UUID], childAge: Int) -> String {
-        let sorted = materialIDs.map(\.uuidString).sorted().joined(separator: ",")
-        return "\(sorted):age\(childAge)"
+        var hasher = Hasher()
+        for id in materialIDs.map(\.uuidString).sorted() {
+            hasher.combine(id)
+        }
+        hasher.combine(childAge)
+        return "age\(childAge)-\(String(UInt(bitPattern: hasher.finalize()), radix: 16))"
     }
 }
 

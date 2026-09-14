@@ -96,7 +96,19 @@ private func makeActivity(timeMinutes: Int = 15, difficulty: ActivityDifficulty 
 
     #expect(request.materialIds == [idB, idA])
     #expect(request.childAge == 18)
-    #expect(request.requestId == "\(idA.uuidString),\(idB.uuidString):age18")
+    // Order-independent: selecting [idB, idA] or [idA, idB] must hash identically,
+    // so a retry with the same materials in a different collection order still dedupes.
+    #expect(request.requestId == MaterialSelectionState.dedupeKey(materialIDs: [idA, idB], childAge: 18))
+}
+
+@Test func dedupeKeyStaysWellUnderTheBackendsHundredCharacterLimitForManySelections() {
+    // Regression test: the backend caps `requestId` at `z.string().max(100)`. The naive
+    // "join every UUID with a comma" approach this used to use exceeded 100 characters
+    // with just 3 selected materials (each a 36-char UUID), which silently failed
+    // "Find Builds" with a validation error for any non-trivial real selection.
+    let manyMaterials = (0..<50).map { _ in UUID() }
+    let key = MaterialSelectionState.dedupeKey(materialIDs: manyMaterials, childAge: 7)
+    #expect(key.count <= 100)
 }
 
 @Test func createResultsFilterMirrorsWebFilterChipSemantics() {
