@@ -30,6 +30,7 @@ struct SubscriptionView: View {
                     Text(message).font(SLFont.callout).foregroundStyle(SLColor.coralText)
                 }
                 actions
+                legalLinks
             }
             .padding(SLSpacing.x4)
         }
@@ -58,10 +59,17 @@ struct SubscriptionView: View {
                     .font(SLFont.callout).foregroundStyle(SLColor.bodyText)
             } else {
                 Text("Upgrade to ScrapLab Plus").font(SLFont.title).foregroundStyle(SLColor.ink)
-                Text(store.offering.map { "\($0.priceDisplay) — cancel anytime" } ?? "Unlock the full ScrapLab experience.")
+                Text(monthlyPriceDisplay.map { "\($0) — cancel anytime" } ?? "Unlock the full ScrapLab experience.")
                     .font(SLFont.callout).foregroundStyle(SLColor.bodyText)
             }
         }
+    }
+
+    /// "$5.99/month" — RevenueCat's `localizedPriceString` is price only, so the
+    /// billing period (the only one this app offers) is appended for display and for
+    /// App Review Guideline 3.1.2's subscription-length requirement.
+    private var monthlyPriceDisplay: String? {
+        store.offering.map { "\($0.priceDisplay)/month" }
     }
 
     private var featureList: some View {
@@ -91,7 +99,7 @@ struct SubscriptionView: View {
                 }
                 .buttonStyle(.scrapLab())
             } else {
-                Button("Upgrade to Plus\(store.offering.map { " — \($0.priceDisplay)" } ?? "")") {
+                Button("Upgrade to Plus\(monthlyPriceDisplay.map { " — \($0)" } ?? "")") {
                     Task { await store.purchase() }
                 }
                 .buttonStyle(.scrapLab(.hero))
@@ -105,5 +113,18 @@ struct SubscriptionView: View {
                 .frame(maxWidth: .infinity)
             }
         }
+    }
+
+    /// App Review Guideline 3.1.2 requires functional Terms of Use / Privacy Policy
+    /// links next to the purchase action for auto-renewable subscriptions.
+    private var legalLinks: some View {
+        HStack(spacing: SLSpacing.x3) {
+            Link("Terms of Use", destination: AppEnvironment.apiBaseURL.appendingPathComponent("terms"))
+            Text("·").foregroundStyle(SLColor.mutedText)
+            Link("Privacy Policy", destination: AppEnvironment.apiBaseURL.appendingPathComponent("privacy"))
+        }
+        .font(SLFont.caption)
+        .foregroundStyle(SLColor.mutedText)
+        .frame(maxWidth: .infinity)
     }
 }

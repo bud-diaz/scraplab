@@ -33,6 +33,7 @@ const menuSections: Section[] = [
     title: "Legal",
     items: [
       { iconType: "shield", label: "Privacy Policy", href: "/privacy" },
+      { iconType: "shield", label: "Terms of Use", href: "/terms" },
     ],
   },
 ];
